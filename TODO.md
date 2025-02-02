@@ -11,6 +11,11 @@
 - Comparer l'efficacité du structured output avec l'approche initiale
 - Ajuster le prompt et les paramètres pour optimiser les résultats
 
+## Étape 3 : Traitement en plusieurs étapes
+- Génération initiale des données
+- Application de traitements mathématiques (moyenne, fonctions spécifiques, etc.)
+- Transformation de texte en valeurs numériques (text-to-int, encodage, etc.)
+- Vérification et validation des transformations effectuées
 
 ## Notes : 
 Ne pas chercher à transformer les données directement, mais fournir un dataset initial et obtenir en retour un dataset entièrement généré. 
