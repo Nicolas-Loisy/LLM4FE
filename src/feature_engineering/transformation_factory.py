@@ -9,7 +9,7 @@ from src.feature_engineering.transformations.math_operations import MathOperatio
 from src.feature_engineering.transformations.base_transform import BaseTransform
 
 
-class FeatureEngineeringFactory:
+class TransformationFactory:
     def __init__(self):
         self.transformations = {}
         self.provider_mapping = {
