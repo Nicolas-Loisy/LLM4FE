@@ -1,0 +1,7 @@
+pandas
+numpy
+scikit-learn
+auto-sklearn
+tpot
+pydantic
+requests
