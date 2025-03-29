@@ -39,3 +39,13 @@ class Config:
             logger.error(f"Invalid JSON in config file: {str(e)}")
         except Exception as e:
             logger.exception(f"Error loading configuration: {str(e)}")
+
+    def save_config(self):
+        # Save configuration settings
+        logger.info("Saving configuration...")
+        try:
+            with open(self.config_path, 'w') as f:
+                json.dump(self.config, f, indent=4)
+            logger.debug(f"Configuration saved to {self.config_path}")
+        except Exception as e:
+            logger.exception(f"Error saving configuration: {str(e)}")

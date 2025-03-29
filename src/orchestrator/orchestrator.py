@@ -14,17 +14,18 @@ from utils.config import Config
 from utils.logger import logger
 
 class Orchestrator:
-    def __init__(self, config_path: str = "config.json"):
+    def __init__(self, config_path: str = "config.json", dataset_description: Optional[str] = None):
         """
         Initialize the orchestrator.
         
         Args:
             config_path: Path to the configuration file
+            dataset_description: Optional description of the dataset for feature engineering
         """
         logger.setup(config_file="../../data/logs/logging.ini")
 
         self.config = Config(config_path)
-        self.feature_engineering_pipeline = FeatureEngineeringPipeline()
+        self.feature_engineering_pipeline = FeatureEngineeringPipeline(dataset_description=dataset_description)
         # self.automl_pipeline = AutoMLPipeline()
         # self.benchmark_pipeline = BenchmarkPipeline()
         
@@ -38,30 +39,6 @@ class Orchestrator:
         # Create directories if they don't exist
         os.makedirs(self.models_dir, exist_ok=True)
         os.makedirs(self.logs_dir, exist_ok=True)
-
-    def load_input_files(self, dataset_path: str, config_path: Optional[str] = None):
-        """
-        Load input files like dataset.csv, config.json.
-        
-        Args:
-            dataset_path: Path to the dataset file
-            config_path: Optional path to the configuration file
-        """
-        print("Loading input files...")
-        
-        # Load the dataset
-        self.input_dataset_path = dataset_path
-        
-        # Load configuration if provided
-        if config_path:
-            self.config.config_path = config_path
-        
-        self.config.load_config()
-        
-        # Initialize the feature engineering pipeline with the dataset
-        self.feature_engineering_pipeline.load_dataset(self.input_dataset_path)
-        
-        print(f"Loaded dataset from {self.input_dataset_path}")
 
     def manage_versions(self):
         """
@@ -87,39 +64,42 @@ class Orchestrator:
         print(f"Created version directory: {version_dir}")
         return version_dir
 
-    def run_feature_engineering(self, dataset_description: Optional[str] = None) -> str:
+    def run_feature_engineering(self) -> str:
         """
-        Call the Feature Engineering module.
+        Call the Feature Engineering module using a single run method.
         
-        Args:
-            dataset_description: Optional description of the dataset
-            
         Returns:
             Path to the transformed dataset
         """
         print(f"Running feature engineering for version {self.current_version}...")
         
-        # Generate transformations using LLM
-        transformations = self.feature_engineering_pipeline.generate_transformations(dataset_description)
+        # Set the version in the feature engineering pipeline
+        self.feature_engineering_pipeline.set_version(self.current_version)
         
-        # Apply transformations
-        transformed_dataset = self.feature_engineering_pipeline.apply_transformations()
-        
-        # Save the transformed dataset
+        # Get the version directory
         version_dir = self.versions_info[self.current_version]["version_dir"]
-        transformed_dataset_path = self.feature_engineering_pipeline.save_transformed_dataset(version_dir)
         
-        # Update version information
-        self.versions_info[self.current_version]["transformed_dataset"] = transformed_dataset_path
-        self.versions_info[self.current_version]["transformations"] = transformations
+        # Run the feature engineering pipeline
+        result = self.feature_engineering_pipeline.run(
+            dataset_path=self.input_dataset_path, 
+            output_dir=version_dir
+        )
         
-        # Save transformations to file
-        transformations_path = os.path.join(version_dir, f"transformations_v{self.current_version}.json")
-        with open(transformations_path, 'w') as f:
-            json.dump({"transformations": transformations}, f, indent=4)
-        
-        print(f"Feature engineering completed. Transformed dataset saved to {transformed_dataset_path}")
-        return transformed_dataset_path
+        if result["status"] == "success":
+            # Update version information
+            self.versions_info[self.current_version]["transformed_dataset"] = result["output_dataset"]
+            self.versions_info[self.current_version]["transformations"] = result["transformations"]
+            
+            # Save transformations to file
+            transformations_path = os.path.join(version_dir, f"transformations_v{self.current_version}.json")
+            with open(transformations_path, 'w') as f:
+                json.dump({"transformations": result["transformations"]}, f, indent=4)
+            
+            print(f"Feature engineering completed. Transformed dataset saved to {result['output_dataset']}")
+            return result["output_dataset"]
+        else:
+            print(f"Feature engineering failed: {result.get('message', 'Unknown error')}")
+            return None
 
     def run_automl(self) -> str:
         """
@@ -285,3 +265,28 @@ class Orchestrator:
             json.dump(version_info, f, indent=4)
         
         return self.versions_info[self.current_version]
+
+    def run(self, dataset_path: str, iterations: int = 1) -> Dict[str, Any]:
+        """
+        Main entry point to run the complete orchestration pipeline.
+        
+        Args:
+            dataset_path: Path to the input dataset
+            iterations: Number of pipeline iterations to run
+            
+        Returns:
+            Dictionary containing information about the best model version
+        """
+        print("Starting LLM4FE orchestration pipeline...")
+        
+        # Store the input dataset path
+        self.input_dataset_path = dataset_path
+        
+        # Run the pipeline iterations
+        best_version = self.iterate_pipeline(iterations=iterations)
+        
+        # Return the information about the best version
+        if best_version is not None:
+            return self.versions_info[best_version]
+        else:
+            return {"status": "completed", "message": "No best version identified"}
