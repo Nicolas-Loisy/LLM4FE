@@ -21,10 +21,17 @@ class DatasetStructure(BaseModel):
 
 
 class FeatureEngineeringPipeline:
-    def __init__(self):
+    def __init__(self, dataset_description: Optional[str] = None):
+        """
+        Initialize Feature Engineering Pipeline.
+        
+        Args:
+            dataset_description: Optional description of the dataset to guide transformations
+        """
         self.factory = FeatureEngineeringFactory()
         self.transformations = []
         self.input_dataset = None
+        self.dataset_description = dataset_description
         self.transformed_dataset = None
         self.version = 1
         self.api_key = os.environ.get("OPENWEBUI_API_KEY", "API_KEY")
@@ -248,3 +255,41 @@ class FeatureEngineeringPipeline:
         
         print(f"Saved transformed dataset to {output_path}")
         return output_path
+
+    def run(self, dataset_path: str, output_dir: str = "data") -> Dict[str, Any]:
+        """
+        Main entry point to run the complete feature engineering pipeline.
+        
+        Args:
+            dataset_path: Path to the input dataset
+            output_dir: Directory to save the transformed dataset
+            
+        Returns:
+            Dictionary containing information about the transformations and paths
+        """
+        print("Starting Feature Engineering pipeline...")
+        
+        # Load the dataset
+        success = self.load_dataset(dataset_path)
+        if not success:
+            return {
+                "status": "error",
+                "message": "Failed to load dataset"
+            }
+        
+        # Generate transformations
+        transformations = self.generate_transformations(self.dataset_description)
+        
+        # Apply transformations
+        transformed_dataset = self.apply_transformations()
+        
+        # Save transformed dataset
+        output_path = self.save_transformed_dataset(output_dir)
+        
+        return {
+            "status": "success",
+            "input_dataset": dataset_path,
+            "output_dataset": output_path,
+            "transformations": transformations,
+            "num_transformations": len(transformations)
+        }
