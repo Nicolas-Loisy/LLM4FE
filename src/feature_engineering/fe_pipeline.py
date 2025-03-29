@@ -6,7 +6,7 @@ from typing import Dict, List, Any, Optional
 from pydantic import BaseModel
 from typing import List, Optional, Literal
 
-from src.feature_engineering.fe_factory import FeatureEngineeringFactory
+from src.feature_engineering.transformation_factory import TransformationFactory
 
 
 class Transformation(BaseModel):
@@ -28,7 +28,7 @@ class FeatureEngineeringPipeline:
         Args:
             dataset_description: Optional description of the dataset to guide transformations
         """
-        self.factory = FeatureEngineeringFactory()
+        self.transformation_factory = TransformationFactory()
         self.transformations = []
         self.input_dataset = None
         self.dataset_description = dataset_description
@@ -216,7 +216,7 @@ class FeatureEngineeringPipeline:
         # Apply each transformation
         for transform_config in self.transformations:
             # Create the transformation
-            transformation = self.factory.create_transformation(transform_config)
+            transformation = self.transformation_factory.create_transformation(transform_config)
             
             if transformation:
                 # Apply the transformation
