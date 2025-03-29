@@ -7,10 +7,11 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 
 from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
-from src.automl.automl_pipeline import AutoMLPipeline
-from src.benchmark.benchmark_pipeline import BenchmarkPipeline
-from src.orchestrator.config_manager import ConfigManager
+# from src.automl.automl_pipeline import AutoMLPipeline
+# from src.benchmark.benchmark_pipeline import BenchmarkPipeline
+from utils.config import Config
 
+from utils.logger import logger
 
 class Orchestrator:
     def __init__(self, config_path: str = "config.json"):
@@ -20,10 +21,12 @@ class Orchestrator:
         Args:
             config_path: Path to the configuration file
         """
-        self.config_manager = ConfigManager(config_path)
+        logger.setup(config_file="../../data/logs/logging.ini")
+
+        self.config = Config(config_path)
         self.feature_engineering_pipeline = FeatureEngineeringPipeline()
-        self.automl_pipeline = AutoMLPipeline()
-        self.benchmark_pipeline = BenchmarkPipeline()
+        # self.automl_pipeline = AutoMLPipeline()
+        # self.benchmark_pipeline = BenchmarkPipeline()
         
         self.current_version = 1
         self.versions_info = {}
@@ -51,9 +54,9 @@ class Orchestrator:
         
         # Load configuration if provided
         if config_path:
-            self.config_manager.config_path = config_path
+            self.config.config_path = config_path
         
-        self.config_manager.load_config()
+        self.config.load_config()
         
         # Initialize the feature engineering pipeline with the dataset
         self.feature_engineering_pipeline.load_dataset(self.input_dataset_path)
@@ -192,7 +195,7 @@ class Orchestrator:
         best_score = -float('inf')
         
         # Metric to use for comparison (e.g., 'accuracy', 'f1', etc.)
-        metric = self.config_manager.config.get("evaluation_metric", "accuracy")
+        metric = self.config.config.get("evaluation_metric", "accuracy")
         
         for version, info in self.versions_info.items():
             if "scores" in info and metric in info["scores"]:
@@ -206,9 +209,9 @@ class Orchestrator:
             print(f"Best version: {best_version} with {metric} = {best_score}")
             
             # Update the configuration with the best version
-            self.config_manager.config["best_version"] = best_version
-            self.config_manager.config["best_score"] = best_score
-            self.config_manager.save_config()
+            self.config.config["best_version"] = best_version
+            self.config.config["best_score"] = best_score
+            self.config.save_config()
             
             return best_version
         else:
