@@ -24,7 +24,7 @@ Le projet suit une structure modulaire et organisée :
 │   ├── 📂 orchestrator/  # Module central de gestion du pipeline
 │   │   ├── __init__.py
 │   │   ├── orchestrator.py  # Coordination du pipeline
-│   │   ├── config_manager.py  # Gestion des configurations
+│   │   ├── config.py  # Gestion des configurations
 │
 │   ├── 📂 feature_engineering/  # Module de transformation des données
 │   │   ├── __init__.py
