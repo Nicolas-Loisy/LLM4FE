@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Literal
 
 from src.feature_engineering.transformation_factory import TransformationFactory
+from src.llm import LLMFactory, LLM
 
 
 class Transformation(BaseModel):
@@ -34,9 +35,20 @@ class FeatureEngineeringPipeline:
         self.dataset_description = dataset_description
         self.transformed_dataset = None
         self.version = 1
-        self.api_key = os.environ.get("OPENWEBUI_API_KEY", "API_KEY")
-        self.api_url = os.environ.get("OPENWEBUI_API_URL", "https://openwebui.example/api/chat/completions")
-        self.model = os.environ.get("LLM_MODEL", "llama3.3:latest")
+        
+        # Initialize LLM using factory
+        api_key = os.environ.get("OPENWEBUI_API_KEY", "API_KEY")
+        api_url = os.environ.get("OPENWEBUI_API_URL", "https://openwebui.example/api")
+        model = os.environ.get("LLM_MODEL", "llama3.3:latest")
+        
+        llm_config = {
+            "api_url": api_url,
+            "api_key": api_key,
+            "model": model
+        }
+        
+        # Create LLM instance
+        self.llm = LLMFactory.create_llm("openwebui", llm_config)
 
     def load_dataset(self, dataset_path: str) -> bool:
         """
@@ -97,28 +109,25 @@ class FeatureEngineeringPipeline:
         Return the transformations in a structured JSON format.
         """
         
-        # Prepare the request to the LLM API
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
-        }
-        
-        data = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "format": DatasetStructure.model_json_schema()
-        }
-        
         try:
-            response = requests.post(self.api_url, headers=headers, data=json.dumps(data))
-            response.raise_for_status()  # Raise an exception for HTTP errors
+            # Use the LLM with format support
+            schema = DatasetStructure.model_json_schema()
             
-            # Parse the response
-            transformations_data = response.json()
+            response = self.llm.generate_with_format(
+                prompt=prompt,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "DatasetStructure",
+                        "strict": True,
+                        "schema": schema
+                    }
+                }
+            )
             
             # Extract the transformations from the response
-            if isinstance(transformations_data, dict) and 'datasetStructure' in transformations_data:
-                self.transformations = transformations_data['datasetStructure']
+            if isinstance(response, dict) and 'datasetStructure' in response:
+                self.transformations = response['datasetStructure']
             else:
                 print("Unexpected response format from LLM")
                 self.transformations = []

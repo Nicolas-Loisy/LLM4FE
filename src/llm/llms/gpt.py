@@ -1,7 +1,7 @@
 import openai
 import json
 from typing import Dict, Any, Optional
-from .base import LLM
+from ..base import LLM
 
 
 class GPTLLM(LLM):
