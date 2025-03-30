@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from typing import List, Optional
-from .base_transform import BaseTransform
+from src.feature_engineering.transformations.base_transform import BaseTransform
 
 
 class EncodingTransform(BaseTransform):

@@ -4,7 +4,7 @@ Mathematical operations for feature engineering.
 import pandas as pd
 import numpy as np
 from typing import List, Optional
-from .base_transform import BaseTransform
+from src.feature_engineering.transformations.base_transform import BaseTransform
 
 
 class MathOperationsTransform(BaseTransform):
