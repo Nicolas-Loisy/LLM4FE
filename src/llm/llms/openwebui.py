@@ -1,7 +1,7 @@
 import requests
 import json
 from typing import Dict, Any, Optional
-from ..base import LLM
+from src.llm.base import LLM
 
 
 class OpenWebUILLM(LLM):
