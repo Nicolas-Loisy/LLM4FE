@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
 from .base import LLM
-from .openwebui import OpenWebUILLM
-from .gpt import GPTLLM
+from .llms.openwebui import OpenWebUILLM
+from .llms.gpt import GPTLLM
 
 
 class LLMFactory:
