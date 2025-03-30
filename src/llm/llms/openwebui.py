@@ -1,7 +1,7 @@
 import requests
 import json
 from typing import Dict, Any, Optional
-from .base import LLM
+from ..base import LLM
 
 
 class OpenWebUILLM(LLM):
@@ -73,9 +73,7 @@ class OpenWebUILLM(LLM):
         if response_format:
             # OpenWebUI expects the format specification at the top level
             if "type" in response_format:
-                if response_format["type"] == "json":
-                    payload["format"] = {"type": "json"}
-                elif response_format["type"] == "json_schema":
+                if response_format["type"] == "json_schema":
                     payload["format"] = response_format
                 else:
                     payload["format"] = response_format

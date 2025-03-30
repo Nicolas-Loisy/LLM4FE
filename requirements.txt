@@ -6,3 +6,4 @@ tpot
 pydantic
 requests
 openai
+dotenv
