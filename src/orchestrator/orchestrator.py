@@ -1,5 +1,4 @@
 # Orchestrator for managing the pipeline
-
 import json
 import os
 from datetime import datetime
@@ -10,7 +9,7 @@ from pathlib import Path
 # from src.automl.automl_pipeline import AutoMLPipeline
 # from src.benchmark.benchmark_pipeline import BenchmarkPipeline
 # from src.utils.config import Config
-from src.utils.logger import logger
+from src.utils.logger import get_logger
 
 class Orchestrator:
     def __init__(self, config_path: str = "config.json", dataset_description: Optional[str] = None):
@@ -21,7 +20,7 @@ class Orchestrator:
             config_path: Path to the configuration file
             dataset_description: Optional description of the dataset for feature engineering
         """
-        logger.ji
+
         # Test the path to ensure it resolves correctly
         logging_path = Path(__file__).parent.parent.parent / "logging.ini"
         print(f"Resolved logging path: {logging_path}")
@@ -29,8 +28,8 @@ class Orchestrator:
             print("Ochestrateur : The logging path exists.")
         else:
             print("Ochestrateur : The logging path does not exist.")
-        # logger.setup(a_path=str(Path(__file__).parent.parent.parent / "logging.ini"))
-        # logger.info("Initializing Orchestrator...")
+        logger = get_logger(config_path=logging_path)
+        logger.info("Initializing Orchestrator...")
 
         # self.config = Config(config_path)
         # self.feature_engineering_pipeline = FeatureEngineeringPipeline(dataset_description=dataset_description)
