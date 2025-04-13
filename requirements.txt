@@ -1,7 +1,9 @@
 pandas
 numpy
 scikit-learn
-auto-sklearn
+# auto-sklearn
 tpot
 pydantic
 requests
+openai
+dotenv
