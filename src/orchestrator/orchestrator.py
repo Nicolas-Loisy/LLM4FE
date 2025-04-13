@@ -4,6 +4,7 @@ import json
 import os
 from datetime import datetime
 from typing import Dict, Any, Optional, List
+from pathlib import Path
 
 # from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
 # from src.automl.automl_pipeline import AutoMLPipeline
@@ -20,8 +21,16 @@ class Orchestrator:
             config_path: Path to the configuration file
             dataset_description: Optional description of the dataset for feature engineering
         """
-        logger.setup(config_path="../../data/logs/logging.ini")
-        logger.info("Initializing Orchestrator...")
+        logger.ji
+        # Test the path to ensure it resolves correctly
+        logging_path = Path(__file__).parent.parent.parent / "logging.ini"
+        print(f"Resolved logging path: {logging_path}")
+        if logging_path.exists():
+            print("Ochestrateur : The logging path exists.")
+        else:
+            print("Ochestrateur : The logging path does not exist.")
+        # logger.setup(a_path=str(Path(__file__).parent.parent.parent / "logging.ini"))
+        # logger.info("Initializing Orchestrator...")
 
         # self.config = Config(config_path)
         # self.feature_engineering_pipeline = FeatureEngineeringPipeline(dataset_description=dataset_description)
