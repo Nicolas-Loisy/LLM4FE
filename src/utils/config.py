@@ -3,7 +3,7 @@
 import json
 import os
 from dotenv import load_dotenv
-from utils.logger import logger
+from src.utils.logger import logger
 
 class Config:
     def __init__(self, config_path, env_path='.env'):

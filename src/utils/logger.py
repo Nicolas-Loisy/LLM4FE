@@ -37,7 +37,7 @@ class Logger:
                 if path.exists():
                     config_path = str(path)
                     break
-        
+
         if config_path and Path(config_path).exists():
             # Configure from file
             try:
