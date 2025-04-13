@@ -5,14 +5,14 @@ from pathlib import Path
 
 class Logger:
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(Logger, cls).__new__(cls)
             cls._instance._logger = None
         return cls._instance
-    
-    def setup(self, config_file=None, level=None, log_file=None):
+
+    def setup(self, config_path=None):
         """
         Set up the logger using configuration file or basic setup
         
@@ -25,7 +25,6 @@ class Logger:
             return
             
         # Try to load config file
-        config_path = config_file
         if not config_path:
             # Look for logging.ini in default locations
             search_paths = [
