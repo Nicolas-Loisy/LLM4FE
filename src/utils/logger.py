@@ -1,37 +1,35 @@
 import logging
 import logging.config
-import os
+import threading
 from pathlib import Path
 
-class Logger:
+class SingletonLogger:
     _instance = None
+    _lock = threading.Lock() # Thread safe 
 
     def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialize(*args, **kwargs)
+        if not cls._instance:
+            with cls._lock:
+                if not cls._instance:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialize(*args, **kwargs)
         return cls._instance
 
-    def _initialize(self, logger_path):
+    def _initialize(self, logger_path=None):
         """
-        Set up the logger using configuration file or basic setup
+        Set up the logger using configuration file or basic setup.
         
         Args:
-            logger_path (str): Path to logging.ini file
+            logger_path (str): Path to logging.ini file.
         """
-
-        if logger_path and Path(logger_path).exists():
-            # Configure from file
-            try:
+        try:
+            if logger_path and Path(logger_path).exists():
                 logging.config.fileConfig(logger_path)
                 self.logger = logging.getLogger('LLM4FE')
                 self.logger.info(f"Logger configured from {logger_path}")
-                return
-            except Exception as e:
-                print(f"Error loading logging config: {e}")
-                # Fall through to basic config
+        except Exception as e:
+            print(f"Error loading logging config: {e}")
         
-    # Simple delegate methods for logging
     def debug(self, message):
         self.logger.debug(message)
     
@@ -51,4 +49,4 @@ class Logger:
         self.logger.exception(message)
 
 def get_logger(config_path):
-    return Logger(config_path)
+    return SingletonLogger(config_path)

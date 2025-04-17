@@ -4,12 +4,12 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 from pathlib import Path
+from src.utils.logger import get_logger
 
 # from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
 # from src.automl.automl_pipeline import AutoMLPipeline
 # from src.benchmark.benchmark_pipeline import BenchmarkPipeline
 # from src.utils.config import Config
-from src.utils.logger import get_logger
 
 class Orchestrator:
     def __init__(self, config_path: str = "config.json", dataset_description: Optional[str] = None):
@@ -23,11 +23,6 @@ class Orchestrator:
 
         # Test the path to ensure it resolves correctly
         logging_path = Path(__file__).parent.parent.parent / "logging.ini"
-        print(f"Resolved logging path: {logging_path}")
-        if logging_path.exists():
-            print("Ochestrateur : The logging path exists.")
-        else:
-            print("Ochestrateur : The logging path does not exist.")
         logger = get_logger(config_path=logging_path)
         logger.info("Initializing Orchestrator...")
 
