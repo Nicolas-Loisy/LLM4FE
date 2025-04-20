@@ -5,10 +5,10 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from typing import List, Optional
-from src.feature_engineering.transformations.base_transform import BaseTransform
+from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
 
-class ScalingTransform(BaseTransform):
+class ScalingTransform(BaseTransformation):
     """
     Applies scaling transformations to numeric columns.
     """

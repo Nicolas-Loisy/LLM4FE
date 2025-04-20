@@ -4,10 +4,10 @@ Mathematical operations for feature engineering.
 import pandas as pd
 import numpy as np
 from typing import List, Optional
-from src.feature_engineering.transformations.base_transform import BaseTransform
+from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
 
-class MathOperationsTransform(BaseTransform):
+class MathOperationsTransform(BaseTransformation):
     """
     Applies mathematical operations to numeric columns.
     """

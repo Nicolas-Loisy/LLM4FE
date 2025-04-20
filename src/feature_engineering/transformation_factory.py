@@ -2,25 +2,22 @@
 from typing import Dict, Any, List, Optional
 import pandas as pd
 
-from src.feature_engineering.transformations.scaling import ScalingTransform
-from src.feature_engineering.transformations.encoding import EncodingTransform
-from src.feature_engineering.transformations.text_processing import TextProcessingTransform
-from src.feature_engineering.transformations.math_operations import MathOperationsTransform
-from src.feature_engineering.transformations.base_transform import BaseTransform
-
+from src.feature_engineering.transformations.base_transformation import BaseTransformation
+from src.feature_engineering.transformations.add_columns import AddColumnsTransform
 
 class TransformationFactory:
     def __init__(self):
         self.transformations = {}
         self.provider_mapping = {
-            'scaling': ScalingTransform,
-            'encoding': EncodingTransform,
-            'text': TextProcessingTransform,
-            'math': MathOperationsTransform,
+            'add': AddColumnsTransform,
+            #'scaling': ScalingTransform,
+            #'encoding': EncodingTransform,
+            #'text': TextProcessingTransform,
+            #'math': MathOperationsTransform,
             # Add more mappings as needed
         }
 
-    def create_transformation(self, transformation_config: Dict[str, Any]) -> Optional[BaseTransform]:
+    def create_transformation(self, transformation_config: Dict[str, Any]) -> Optional[BaseTransformation]:
         """
         Create a transformation based on the configuration.
         
@@ -65,7 +62,7 @@ class TransformationFactory:
         """
         result_df = df.copy()
         
-        for transform_id, transformation in self.transformations.items():
+        for _, transformation in self.transformations.items():
             result_df = transformation.transform(result_df)
             
         return result_df

@@ -5,10 +5,10 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from typing import List, Optional
-from src.feature_engineering.transformations.base_transform import BaseTransform
+from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
 
-class TextProcessingTransform(BaseTransform):
+class TextProcessingTransform(BaseTransformation):
     """
     Applies text processing transformations to text columns.
     """

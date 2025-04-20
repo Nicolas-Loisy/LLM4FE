@@ -5,10 +5,10 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from typing import List, Optional
-from src.feature_engineering.transformations.base_transform import BaseTransform
+from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
 
-class EncodingTransform(BaseTransform):
+class EncodingTransform(BaseTransformation):
     """
     Applies encoding transformations to categorical columns.
     """
