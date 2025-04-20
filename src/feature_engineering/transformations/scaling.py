@@ -12,26 +12,20 @@ class ScalingTransform(BaseTransformation):
     """
     Applies scaling transformations to numeric columns.
     """
-    def __init__(self, final_col: str, cols_to_process: List[str], param: Optional[str] = 'standard'):
+    def __init__(self, transformation_type: str, description: str, category: str, new_column_name: str, source_columns: List[str], transformation_params: Optional[dict] = None):
         """
         Initialize the scaling transformation.
         
         Args:
-            final_col: The name of the output column after transformation
-            cols_to_process: List of column names to process
-            param: Type of scaling to apply ('standard', 'minmax', 'robust')
+            transformation_type: Type of the transformation (e.g., 'encode')
+            description: Description of the transformation
+            category: The category of the transformation (e.g., 'encoding')
+            new_column_name: The name of the output column after transformation
+            source_columns: List of column names to process
+            transformation_params: Parameters for the encoding transformation, like 'onehot', 'label', 'ordinal'
         """
-        super().__init__(final_col, cols_to_process, param)
+        super().__init__(transformation_type, description, category, new_column_name, source_columns, transformation_params)
         self.scaler = None
-        
-        if param == 'standard':
-            self.scaler = StandardScaler()
-        elif param == 'minmax':
-            self.scaler = MinMaxScaler()
-        elif param == 'robust':
-            self.scaler = RobustScaler()
-        else:
-            self.scaler = StandardScaler()  # Default to standard scaling
     
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -43,18 +37,18 @@ class ScalingTransform(BaseTransformation):
         Returns:
             Dataframe with scaled column added
         """
-        if len(self.cols_to_process) == 1:
+        if len(self.source_columns) == 1:
             # Single column transformation
-            col = self.cols_to_process[0]
+            col = self.source_columns[0]
             if col in df.columns:
                 # Reshape for sklearn's fit_transform
                 values = df[col].values.reshape(-1, 1)
-                df[self.final_col] = self.scaler.fit_transform(values).flatten()
+                df[self.new_column_name] = self.scaler.fit_transform(values).flatten()
         else:
             # Multiple columns transformation
-            valid_cols = [col for col in self.cols_to_process if col in df.columns]
+            valid_cols = [col for col in self.source_columns if col in df.columns]
             if valid_cols:
                 # Create a new column with the scaled values
-                df[self.final_col] = self.scaler.fit_transform(df[valid_cols])[:, 0]
+                df[self.new_column_name] = self.scaler.fit_transform(df[valid_cols])[:, 0]
         
         return df

@@ -12,22 +12,20 @@ class TextProcessingTransform(BaseTransformation):
     """
     Applies text processing transformations to text columns.
     """
-    def __init__(self, final_col: str, cols_to_process: List[str], param: Optional[str] = 'tfidf'):
+    def __init__(self, transformation_type: str, description: str, category: str, new_column_name: str, source_columns: List[str], transformation_params: Optional[dict] = None):
         """
         Initialize the text processing transformation.
         
         Args:
-            final_col: The name of the output column after transformation
-            cols_to_process: List of column names to process
-            param: Type of text processing to apply ('tfidf', 'count', 'length')
+            transformation_type: Type of the transformation (e.g., 'encode')
+            description: Description of the transformation
+            category: The category of the transformation (e.g., 'encoding')
+            new_column_name: The name of the output column after transformation
+            source_columns: List of column names to process
+            transformation_params: Parameters for the encoding transformation, like 'onehot', 'label', 'ordinal'
         """
-        super().__init__(final_col, cols_to_process, param)
+        super().__init__(transformation_type, description, category, new_column_name, source_columns, transformation_params)
         self.vectorizer = None
-        
-        if param == 'tfidf':
-            self.vectorizer = TfidfVectorizer(max_features=100)
-        elif param == 'count':
-            self.vectorizer = CountVectorizer(max_features=100)
     
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -43,8 +41,8 @@ class TextProcessingTransform(BaseTransformation):
         
         if self.param == 'tfidf' or self.param == 'count':
             # For vectorization (TF-IDF or Count)
-            if len(self.cols_to_process) == 1:
-                col = self.cols_to_process[0]
+            if len(self.source_columns) == 1:
+                col = self.source_columns[0]
                 if col in df.columns:
                     # Fill NA values with empty string
                     texts = df[col].fillna('').astype(str)
@@ -61,15 +59,15 @@ class TextProcessingTransform(BaseTransformation):
                     
                     # Create new columns for top features
                     for i, feature in enumerate(feature_names):
-                        new_col = f"{self.final_col}_{feature}"
+                        new_col = f"{self.new_column_name}_{feature}"
                         result_df[new_col] = vectorized[:, i].toarray().flatten()
             
         elif self.param == 'length':
             # For text length
-            if len(self.cols_to_process) == 1:
-                col = self.cols_to_process[0]
+            if len(self.source_columns) == 1:
+                col = self.source_columns[0]
                 if col in df.columns:
                     # Calculate text length
-                    result_df[self.final_col] = df[col].fillna('').astype(str).apply(len)
+                    result_df[self.new_column_name] = df[col].fillna('').astype(str).apply(len)
         
         return result_df

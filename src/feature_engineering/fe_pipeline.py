@@ -11,10 +11,10 @@ from src.llm import LLMFactory, LLM
 
 
 class Transformation(BaseModel):
-    finalCol: str
-    colToProcess: List[str]
-    providerTransform: Literal['math', 'aggregation', 'encoding', 'scaling', 'text', 'custom']
-    param: Optional[str] = None
+    new_column_name: str
+    source_columns: List[str]
+    category: Literal['math', 'aggregation', 'encoding', 'scaling', 'text', 'custom']
+    transformation_params: Optional[str] = None
 
 
 class DatasetStructure(BaseModel):
@@ -101,10 +101,10 @@ class FeatureEngineeringPipeline:
         
         Generate a list of feature engineering transformations that would improve model performance.
         For each transformation, specify:
-        1. The final column name (finalCol)
-        2. The column(s) to process (colToProcess)
-        3. The type of transformation (providerTransform): 'math', 'aggregation', 'encoding', 'scaling', 'text', or 'custom'
-        4. Any parameters needed (param)
+        1. The new column name (new_column_name)
+        2. The source columns (source_columns)
+        3. The category: 'math', 'aggregation', 'encoding', 'scaling', 'text', or 'custom'
+        4. Any transformation parameters (transformation_params)
         
         Return the transformations in a structured JSON format.
         """
@@ -155,19 +155,19 @@ class FeatureEngineeringPipeline:
         # Add scaling for numeric columns
         for col in numeric_cols[:2]:  # Just use the first few columns
             self.transformations.append({
-                "finalCol": f"{col}_scaled",
-                "colToProcess": [col],
-                "providerTransform": "scaling",
-                "param": "standard"
+                "new_column_name": f"{col}_scaled",
+                "source_columns": [col],
+                "category": "scaling",
+                "transformation_params": "standard"
             })
         
         # Add encoding for categorical columns
         for col in categorical_cols[:2]:  # Just use the first few columns
             self.transformations.append({
-                "finalCol": f"{col}_encoded",
-                "colToProcess": [col],
-                "providerTransform": "encoding",
-                "param": "label"
+                "new_column_name": f"{col}_encoded",
+                "source_columns": [col],
+                "category": "encoding",
+                "transformation_params": "label"
             })
 
     def _get_dataset_info(self) -> str:

@@ -3,17 +3,16 @@ from typing import Dict, Any, List, Optional
 import pandas as pd
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
-from src.feature_engineering.transformations.add_columns import AddColumnsTransform
+from src.feature_engineering.transformations.math_operations import MathOperationsTransform
 
 class TransformationFactory:
     def __init__(self):
         self.transformations = {}
         self.provider_mapping = {
-            'add': AddColumnsTransform,
             #'scaling': ScalingTransform,
             #'encoding': EncodingTransform,
             #'text': TextProcessingTransform,
-            #'math': MathOperationsTransform,
+            'math': MathOperationsTransform,
             # Add more mappings as needed
         }
 
@@ -22,30 +21,40 @@ class TransformationFactory:
         Create a transformation based on the configuration.
         
         Args:
-            transformation_config: Dictionary containing transformation configuration
-                - finalCol: The name of the output column
-                - colToProcess: List of column names to process
-                - providerTransform: Type of transformation ('math', 'encoding', 'scaling', etc.)
-                - param: Optional parameter for the transformation
+            transformation_config: Dictionnaire contenant la configuration de la transformation
+                - transformation_type: The name of the new transformation
+                - description: The transformation description
+                - category: The transformation category
+                - new_column_name: The name of the new column
+                - source_columns: List of columns to process
+                - transformation_params: Optional Parameter (par défaut None)
                 
         Returns:
             A transformation instance or None if the provider is not found
         """
-        final_col = transformation_config.get('finalCol')
-        cols_to_process = transformation_config.get('colToProcess', [])
-        provider = transformation_config.get('providerTransform')
-        param = transformation_config.get('param')
-        
-        # Check if we have a valid provider
-        if provider in self.provider_mapping:
-            # Create the transformation
-            transform_class = self.provider_mapping[provider]
-            transformation = transform_class(final_col, cols_to_process, param)
-            
-            # Store the transformation
-            transform_id = f"{provider}_{final_col}"
+
+        transformation_type = transformation_config.get('transformation_type')
+        description = transformation_config.get('description')
+        category = transformation_config.get('category')
+        new_column_name = transformation_config.get('new_column_name')
+        source_columns = transformation_config.get('source_columns', [])
+        transformation_params = transformation_config.get('transformation_params')
+      
+        if category in self.provider_mapping:
+            transform_class = self.provider_mapping[category]
+            transformation = transform_class(
+                transformation_type,
+                description,
+                category,
+                new_column_name,
+                source_columns,
+                transformation_params
+            )
+
+            transform_id = f"{transformation_type}_{new_column_name}"
             self.transformations[transform_id] = transformation
-            
+
+            print("transfo", transformation)
             return transformation
         
         return None
