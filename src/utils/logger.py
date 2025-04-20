@@ -45,5 +45,9 @@ class SingletonLogger:
     def exception(self, message):
         self.logger.exception(message)
 
+
+def init_logger(logger_path):
+    get_logger(logger_path)
+
 def get_logger(logger_path):
     return SingletonLogger(logger_path)
