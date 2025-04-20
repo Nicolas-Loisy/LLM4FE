@@ -23,7 +23,7 @@ class Orchestrator:
 
         # Test the path to ensure it resolves correctly
         logging_path = Path(__file__).parent.parent.parent / "logging.ini"
-        logger = get_logger(config_path=logging_path)
+        logger = get_logger(logger_path=logging_path)
         logger.info("Initializing Orchestrator...")
 
         # self.config = Config(config_path)
