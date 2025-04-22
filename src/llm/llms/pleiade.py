@@ -39,7 +39,7 @@ class Pleiade:
     ]
 
     _model = "llama3.3:latest"
-    _api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjcxMTEwNzM3LTA1ZmMtNDhlNS05MDg5LTllOTI0MjFkZDFmZiJ9.1vTBTG7H1TlSYuXnDPqvwoObzO2FmGHZGlJ4tiOTC7I"
+   #  _api_key = A AJOUTER
     _api_url = "https://pleiade.mi.parisdescartes.fr/api/chat/completions"
 
     @classmethod
