@@ -1,17 +1,17 @@
 # Orchestrator for managing the pipeline
-
 import json
 import os
-import pandas as pd
-from datetime import datetime
-from typing import Dict, Any, Optional, List
+import logging
 
-from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
+from datetime import datetime
+from typing import Dict, Any, Optional
+
+# from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
 # from src.automl.automl_pipeline import AutoMLPipeline
 # from src.benchmark.benchmark_pipeline import BenchmarkPipeline
-from utils.config import Config
+# from src.utils.config import Config
 
-from utils.logger import logger
+logger = logging.getLogger(__name__)
 
 class Orchestrator:
     def __init__(self, config_path: str = "config.json", dataset_description: Optional[str] = None):
@@ -22,23 +22,24 @@ class Orchestrator:
             config_path: Path to the configuration file
             dataset_description: Optional description of the dataset for feature engineering
         """
-        logger.setup(config_file="../../data/logs/logging.ini")
 
-        self.config = Config(config_path)
-        self.feature_engineering_pipeline = FeatureEngineeringPipeline(dataset_description=dataset_description)
-        # self.automl_pipeline = AutoMLPipeline()
-        # self.benchmark_pipeline = BenchmarkPipeline()
+        logger.info("Initializing Orchestrator...")
+
+        # self.config = Config(config_path)
+        # self.feature_engineering_pipeline = FeatureEngineeringPipeline(dataset_description=dataset_description)
+        # # self.automl_pipeline = AutoMLPipeline()
+        # # self.benchmark_pipeline = BenchmarkPipeline()
         
-        self.current_version = 1
-        self.versions_info = {}
-        self.input_dataset_path = None
-        self.output_dir = "data"
-        self.models_dir = os.path.join(self.output_dir, "models")
-        self.logs_dir = os.path.join(self.output_dir, "logs")
+        # self.current_version = 1
+        # self.versions_info = {}
+        # self.input_dataset_path = None
+        # self.output_dir = "data"
+        # self.models_dir = os.path.join(self.output_dir, "models")
+        # self.logs_dir = os.path.join(self.output_dir, "logs")
         
-        # Create directories if they don't exist
-        os.makedirs(self.models_dir, exist_ok=True)
-        os.makedirs(self.logs_dir, exist_ok=True)
+        # # Create directories if they don't exist
+        # os.makedirs(self.models_dir, exist_ok=True)
+        # os.makedirs(self.logs_dir, exist_ok=True)
 
     def manage_versions(self):
         """
