@@ -7,14 +7,15 @@ from pydantic import BaseModel
 from typing import List, Optional, Literal
 
 from src.feature_engineering.transformation_factory import TransformationFactory
+from src.feature_engineering.transformations.base_transformation import BaseTransformation
 from src.llm import LLMFactory, LLM
 
 
 class Transformation(BaseModel):
-    new_column_name: str
-    source_columns: List[str]
-    category: Literal['math', 'aggregation', 'encoding', 'scaling', 'text', 'custom']
-    transformation_params: Optional[str] = None
+    finalCol: str
+    colToProcess: List[str]
+    providerTransform: Literal[*TransformationFactory.PROVIDER_TRANSFORMATIONS] # Récupère dynamiquement les transformations disponibles
+    param: Optional[Dict[str, Any]] = None
 
 
 class DatasetStructure(BaseModel):
@@ -22,33 +23,34 @@ class DatasetStructure(BaseModel):
 
 
 class FeatureEngineeringPipeline:
-    def __init__(self, dataset_description: Optional[str] = None):
+    def __init__(self, dataset_path: str, dataset_description: Optional[str] = None):
         """
         Initialize Feature Engineering Pipeline.
         
         Args:
             dataset_description: Optional description of the dataset to guide transformations
         """
-        self.transformation_factory = TransformationFactory()
         self.transformations = []
         self.input_dataset = None
         self.dataset_description = dataset_description
         self.transformed_dataset = None
         self.version = 1
         
+        # TODO : Les variables d'environnement seront bientôt gérées par le fichier config.py, supprimer quand fichier dispo
         # Initialize LLM using factory
-        api_key = os.environ.get("OPENWEBUI_API_KEY", "API_KEY")
-        api_url = os.environ.get("OPENWEBUI_API_URL", "https://openwebui.example/api")
-        model = os.environ.get("LLM_MODEL", "llama3.3:latest")
+        # api_key = os.environ.get("OPENWEBUI_API_KEY", "API_KEY")
+        # api_url = os.environ.get("OPENWEBUI_API_URL", "https://openwebui.example/api")
+        # model = os.environ.get("LLM_MODEL", "llama3.3:latest")
         
-        llm_config = {
-            "api_url": api_url,
-            "api_key": api_key,
-            "model": model
-        }
+        # llm_config = {
+        #     "api_url": api_url,
+        #     "api_key": api_key,
+        #     "model": model
+        # }
         
-        # Create LLM instance
-        self.llm = LLMFactory.create_llm("openwebui", llm_config)
+        # # Create LLM instance
+        # self.llm = LLMFactory.create_llm("openwebui", llm_config)
+        self.load_dataset(dataset_path)
 
     def load_dataset(self, dataset_path: str) -> bool:
         """
@@ -137,39 +139,9 @@ class FeatureEngineeringPipeline:
             
         except Exception as e:
             print(f"Error generating transformations: {e}")
-            # Fallback to some default transformations for testing
-            self._generate_default_transformations()
-            return self.transformations
 
-    def _generate_default_transformations(self):
-        """Generate some default transformations for testing."""
-        self.transformations = []
-        
-        if self.input_dataset is None:
-            return
-        
-        # Add some basic transformations based on column types
-        numeric_cols = self.input_dataset.select_dtypes(include=['number']).columns.tolist()
-        categorical_cols = self.input_dataset.select_dtypes(include=['object']).columns.tolist()
-        
-        # Add scaling for numeric columns
-        for col in numeric_cols[:2]:  # Just use the first few columns
-            self.transformations.append({
-                "new_column_name": f"{col}_scaled",
-                "source_columns": [col],
-                "category": "scaling",
-                "transformation_params": "standard"
-            })
-        
-        # Add encoding for categorical columns
-        for col in categorical_cols[:2]:  # Just use the first few columns
-            self.transformations.append({
-                "new_column_name": f"{col}_encoded",
-                "source_columns": [col],
-                "category": "encoding",
-                "transformation_params": "label"
-            })
-
+  
+    # TODO : Fonction à ignorer pour le moment, permet de récupérer les informations sur le dataset pour le prompt LLM
     def _get_dataset_info(self) -> str:
         """Get information about the dataset for the LLM prompt."""
         if self.input_dataset is None:
@@ -201,7 +173,7 @@ class FeatureEngineeringPipeline:
         
         return "\n".join(info)
 
-    def apply_transformations(self) -> pd.DataFrame:
+    def apply_transformations(self, transformations: Optional[List[Dict[str, Any]]] = None) -> pd.DataFrame:
         """
         Apply transformations to the dataset.
         
@@ -214,7 +186,7 @@ class FeatureEngineeringPipeline:
             print("No dataset loaded. Please load a dataset first.")
             return None
         
-        if not self.transformations:
+        if not transformations:
             print("No transformations to apply.")
             self.transformed_dataset = self.input_dataset.copy()
             return self.transformed_dataset
@@ -223,9 +195,9 @@ class FeatureEngineeringPipeline:
         self.transformed_dataset = self.input_dataset.copy()
         
         # Apply each transformation
-        for transform_config in self.transformations:
+        for transform_config in transformations:
             # Create the transformation
-            transformation = self.transformation_factory.create_transformation(transform_config)
+            transformation: BaseTransformation = TransformationFactory.create_transformation(transform_config)
             
             if transformation:
                 # Apply the transformation
@@ -234,11 +206,12 @@ class FeatureEngineeringPipeline:
             else:
                 print(f"Failed to create transformation: {transform_config}")
         
-        print(f"Applied {len(self.transformations)} transformations")
+        print(f"Applied {len(transformations)} transformations")
         print(f"Transformed dataset shape: {self.transformed_dataset.shape}")
         
         return self.transformed_dataset
 
+    # TODO : Fonction à ignorer pour le moment, permet de sauvegarder le dataset transformé
     def save_transformed_dataset(self, output_dir: str = "data") -> str:
         """
         Save the transformed dataset.
@@ -265,7 +238,7 @@ class FeatureEngineeringPipeline:
         print(f"Saved transformed dataset to {output_path}")
         return output_path
 
-    def run(self, dataset_path: str, output_dir: str = "data") -> Dict[str, Any]:
+    def run(self) -> Dict[str, Any]:
         """
         Main entry point to run the complete feature engineering pipeline.
         
@@ -277,28 +250,16 @@ class FeatureEngineeringPipeline:
             Dictionary containing information about the transformations and paths
         """
         print("Starting Feature Engineering pipeline...")
-        
-        # Load the dataset
-        success = self.load_dataset(dataset_path)
-        if not success:
-            return {
-                "status": "error",
-                "message": "Failed to load dataset"
-            }
-        
+                
+        # TODO : Remettre après tests
         # Generate transformations
-        transformations = self.generate_transformations(self.dataset_description)
+        # transformations = self.generate_transformations(self.dataset_description)
+        transformations = self.transformations
         
         # Apply transformations
-        transformed_dataset = self.apply_transformations()
+        transformed_dataset = self.apply_transformations(transformations)
         
         # Save transformed dataset
-        output_path = self.save_transformed_dataset(output_dir)
+        # output_path = self.save_transformed_dataset(output_dir)
         
-        return {
-            "status": "success",
-            "input_dataset": dataset_path,
-            "output_dataset": output_path,
-            "transformations": transformations,
-            "num_transformations": len(transformations)
-        }
+        return transformed_dataset
