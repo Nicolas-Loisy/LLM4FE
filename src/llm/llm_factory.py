@@ -1,42 +1,37 @@
 from typing import List, Dict, Any
 from pydantic import BaseModel
-from llms.pleiade import Pleiade
-from llms.openai_client import OpenAI
+from src.llm import OpenWebUILLM, Pleiade, OpenAI
 
 
-class DatasetStructureItem(BaseModel):
+# TODO : Les classes de structure de données doivent être définies dans un autre fichier
+class ColumnStructure(BaseModel):
     new_column_name: str
-    source_columns: List[str]
     column_description: str
+    source_columns: List[str]
     transformation_type: str
-    # Peut être précisé selon le type attendu
+    # TODO : Précisé selon le type de transformation attendue
     transformation_params: Dict[str, Any]
 
-
-class ResponseFormat(BaseModel):
-    dataset_id: str
-    # dataset_source_file: str
-    prompt: str  # Non retourner pas le LLM
-    target_column: str
-    # configs: config
-    dataset_structure: List[DatasetStructureItem]
+class DatasetStructure(BaseModel):
+    dataset_structure: List[ColumnStructure]
 
 
 class LLMFactory:
 
     @staticmethod
-    def create_llm(config: dict):
-        provider = config["provider"]
+    def create_llm(llm_config: dict):
+        provider = llm_config["provider"]
         if provider == "Pleiade":
-            Pleiade.set_model(config["model"])
-            return Pleiade
+            return Pleiade(api_key=llm_config["api_key"], model=llm_config["model"]) 
 
-        elif provider == "OpenAi":
-            OpenAI.set_model(config["model"])
-            return OpenAI
+        if provider == "OpenAi":
+            return OpenAI(api_key=llm_config["api_key"], model=llm_config.get("model"))
+
+        if provider == "OpenWebUI":
+            return OpenWebUILLM(api_url=llm_config["api_url"], api_key=llm_config["api_key"], model=llm_config["model"])
+        
         else:
             raise ValueError(f"LLM provider {provider} is not supported.")
-
 
 # POUR TESTER OPEN AI LA REPONSE DOIT ETRE LA CLASSE
 '''config = {
@@ -76,6 +71,6 @@ class LLMFactory:
     """
 }'''
 
-reponse = LLMFactory.create_llm(config)
+# reponse = LLMFactory.create_llm(llm_config)
 
-print(reponse)
+# print(reponse)

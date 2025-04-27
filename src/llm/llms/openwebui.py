@@ -1,52 +1,55 @@
 import requests
 import json
-from typing import Dict, Any, Optional
-from src.llm.base import LLM
+from typing import Dict, Any, Optional, Type
+from pydantic import BaseModel
+
+from src.llm.llms.base_llm import BaseLLM
 
 
-class OpenWebUILLM(LLM):
+class OpenWebUILLM(BaseLLM):
     """
     OpenWebUI implementation of the LLM interface.
     """
     
-    def __init__(self, api_url: str, api_key: Optional[str] = None):
+    def __init__(self, api_url: str, api_key: Optional[str] = None, model: str = "llama3.3:latest"):
         """
         Initialize OpenWebUI LLM.
         
         Args:
             api_url: The URL of the OpenWebUI API
             api_key: Optional API key for authentication
+            model: The model to use (default: llama3.3:latest)
         """
-        self.api_url = api_url
-        self.api_key = api_key
-        self.headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-    
-    def generate(self, prompt: str, **kwargs) -> str:
-        """
-        Generate text using OpenWebUI.
-        
-        Args:
-            prompt: The input prompt
-            **kwargs: Additional parameters for the OpenWebUI API
-            
-        Returns:
-            The generated text response
-        """
-        payload = {
-            "prompt": prompt,
-            **kwargs
+        self._api_url = api_url
+        self._api_key = api_key
+        self._model = model
+        self._headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self._api_key}"
         }
-        
+    
+    def generate(self, prompt: str, response_format: Optional[Type[BaseModel]] = None, **kwargs) -> str:
+        request_body = {
+            "model": self._model,
+            "messages": [{"role": "user", "content": prompt}]
+        }
+
+        if response_format:
+            request_body["format"] = response_format.model_json_schema()
+
         response = requests.post(
-            f"{self.api_url}/api/generate",
-            headers=self.headers,
-            json=payload
+            f"{self._api_url}/api/chat/completions",
+            headers=self._headers,
+            data=json.dumps(request_body)
         )
         
-        if response.status_code == 200:
-            return response.json().get("response", "")
-        else:
-            raise Exception(f"OpenWebUI API error: {response.status_code} - {response.text}")
+        try:
+            response.raise_for_status()
+            response_json = response.json()
+            return response_json.get("choices", [{}])[0].get("message", {}).get("content", "")
+        except requests.exceptions.RequestException as e:
+            print(f"Erreur : {e}")
+            return None
     
     def generate_with_format(self, prompt: str, response_format: Optional[Dict[str, Any]] = None, **kwargs) -> Any:
         """
@@ -60,52 +63,9 @@ class OpenWebUILLM(LLM):
         Returns:
             The generated response in the specified format
         """
-        # Create messages array for compatibility with OpenWebUI
-        messages = [{"role": "user", "content": prompt}]
+        return self.generate(prompt, response_format)
         
-        payload = {
-            "model": kwargs.pop("model", "default"),
-            "messages": messages,
-            **kwargs
-        }
-        
-        # Add response_format to the payload directly if specified
-        if response_format:
-            # OpenWebUI expects the format specification at the top level
-            if "type" in response_format:
-                if response_format["type"] == "json_schema":
-                    payload["format"] = response_format
-                else:
-                    payload["format"] = response_format
-            else:
-                payload["format"] = response_format
-        
-        response = requests.post(
-            f"{self.api_url}/api/chat/completions",  # Using chat endpoint for format support
-            headers=self.headers,
-            json=payload
-        )
-        
-        if response.status_code == 200:
-            response_data = response.json()
-            result = response_data.get("response", "")
-            
-            # If the API already parsed the JSON, use that
-            if "parsed_output" in response_data:
-                return response_data["parsed_output"]
-                
-            # Otherwise try to parse JSON if that was the requested format
-            if response_format and (response_format.get("type") == "json" or response_format.get("type") == "json_schema"):
-                try:
-                    return json.loads(result)
-                except json.JSONDecodeError:
-                    # If parsing fails, return the raw string
-                    return result
-            
-            return result
-        else:
-            raise Exception(f"OpenWebUI API error: {response.status_code} - {response.text}")
-    
+ 
     def get_model_info(self) -> Dict[str, Any]:
         """
         Get information about the current OpenWebUI model.
@@ -114,8 +74,8 @@ class OpenWebUILLM(LLM):
             A dictionary containing model information
         """
         response = requests.get(
-            f"{self.api_url}/api/models/info",
-            headers=self.headers
+            f"{self._api_url}/api/models/info",
+            headers=self._headers
         )
         
         if response.status_code == 200:
