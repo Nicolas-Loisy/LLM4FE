@@ -28,7 +28,7 @@ class OpenWebUILLM(BaseLLM):
             "Authorization": f"Bearer {self._api_key}"
         }
     
-    def generate(self, prompt: str, response_format: Optional[Type[BaseModel]] = None, **kwargs) -> str:
+    def generate(self, prompt: str, response_format: Optional[Type[BaseModel]] = None, **kwargs) -> Any:
         request_body = {
             "model": self._model,
             "messages": [{"role": "user", "content": prompt}]
@@ -46,6 +46,8 @@ class OpenWebUILLM(BaseLLM):
         try:
             response.raise_for_status()
             response_json = response.json()
+            if response_format:
+                return response_format.model_validate_json(response_json.get("choices", [{}])[0].get("message", {}).get("content", {}))
             return response_json.get("choices", [{}])[0].get("message", {}).get("content", "")
         except requests.exceptions.RequestException as e:
             print(f"Erreur : {e}")

@@ -38,7 +38,7 @@ class OpenAI(BaseLLM):
                 response_format=response_format,
                 **kwargs
             )
-            return response.choices[0].message.parsed.model_dump()
+            return response.choices[0].message.parsed
 
         except Exception as e:
             print(f"Erreur d’appel OpenAI : {e}")
