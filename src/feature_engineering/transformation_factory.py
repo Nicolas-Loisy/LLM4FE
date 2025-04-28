@@ -1,77 +1,67 @@
-# Factory for managing transformations
-from typing import Dict, Any, List, Optional
-import pandas as pd
-
+from typing import Dict, Any, Optional, List
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
+
 from src.feature_engineering.transformations.math_operations import MathOperationsTransform
+from src.feature_engineering.transformations.encoding import EncodingTransform
+from src.feature_engineering.transformations.scaling import ScalingTransform
+from src.feature_engineering.transformations.text_processing import TextProcessingTransform
+
 
 class TransformationFactory:
-    def __init__(self):
-        self.transformations = {}
-        self.provider_mapping = {
-            #'scaling': ScalingTransform,
-            #'encoding': EncodingTransform,
-            #'text': TextProcessingTransform,
-            'math': MathOperationsTransform,
-            # Add more mappings as needed
-        }
+    """
+    Factory class for creating transformation instances based on configuration.
 
-    def create_transformation(self, transformation_config: Dict[str, Any]) -> Optional[BaseTransformation]:
+    """
+
+    PROVIDER_TRANSFORMATIONS: List[str] = [
+        MathOperationsTransform.PROVIDER,
+        # EncodingTransform.PROVIDER,
+        # ScalingTransform.PROVIDER,
+        # TextProcessingTransform.PROVIDER,
+        # TODO : Add other transformation providers here
+    ]
+
+    # Informations about available transformations for llm prompt
+    INFO_TRANSFORMATIONS = {
+        MathOperationsTransform.PROVIDER: MathOperationsTransform.DESCRIPTION,
+        # TODO : Add descriptions for other transformations
+        # EncodingTransform.PROVIDER: EncodingTransform.DESCRIPTION,
+        # ScalingTransform.PROVIDER: ScalingTransform.DESCRIPTION,
+        # TextProcessingTransform.PROVIDER: TextProcessingTransform.DESCRIPTION,
+    }
+
+
+    @staticmethod
+    def create_transformation(transformation_config: Dict[str, Any]) -> Optional[BaseTransformation]:
         """
         Create a transformation based on the configuration.
         
         Args:
-            transformation_config: Dictionnaire contenant la configuration de la transformation
-                - transformation_type: The name of the new transformation
-                - description: The transformation description
-                - category: The transformation category
-                - new_column_name: The name of the new column
+            transformation_config: Dictionary containing transformation configuration
+                - new_column_name: Name of the column to store the result of the transformation
                 - source_columns: List of columns to process
-                - transformation_params: Optional Parameter (par défaut None)
-                
+                - transformation_type: Type of transformation ('math', 'encoding', 'scaling', etc.)
+                - transformation_params: Optional parameter for the transformation
+                - ...
         Returns:
             A transformation instance or None if the provider is not found
         """
+        provider = transformation_config["transformation_type"]
+        param = transformation_config.get("transformation_params", None)
+        new_column_name = transformation_config["new_column_name"]
+        source_columns = transformation_config["source_columns"]
 
-        transformation_type = transformation_config.get('transformation_type')
-        description = transformation_config.get('description')
-        category = transformation_config.get('category')
-        new_column_name = transformation_config.get('new_column_name')
-        source_columns = transformation_config.get('source_columns', [])
-        transformation_params = transformation_config.get('transformation_params')
-      
-        if category in self.provider_mapping:
-            transform_class = self.provider_mapping[category]
-            transformation = transform_class(
-                transformation_type,
-                description,
-                category,
-                new_column_name,
-                source_columns,
-                transformation_params
-            )
+        if provider == "math_operations":
+            return MathOperationsTransform(new_column_name, source_columns, param)
 
-            transform_id = f"{transformation_type}_{new_column_name}"
-            self.transformations[transform_id] = transformation
+        if provider == "encoding":
+            return EncodingTransform(new_column_name, source_columns, param)
 
-            print("transfo", transformation)
-            return transformation
-        
-        return None
-    
-    def apply_transformations(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Apply all registered transformations to the dataframe.
-        
-        Args:
-            df: Input dataframe
-            
-        Returns:
-            Transformed dataframe
-        """
-        result_df = df.copy()
-        
-        for _, transformation in self.transformations.items():
-            result_df = transformation.transform(result_df)
-            
-        return result_df
+        if provider == "scaling":
+            return ScalingTransform(new_column_name, source_columns, param)
+
+        if provider == "text_processing":
+            return TextProcessingTransform(new_column_name, source_columns, param)
+
+        # Add more transformations as needed
+        raise ValueError(f"Transformation provider '{provider}' not found.")

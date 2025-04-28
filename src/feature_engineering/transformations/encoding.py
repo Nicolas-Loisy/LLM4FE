@@ -12,19 +12,16 @@ class EncodingTransform(BaseTransformation):
     """
     Applies encoding transformations to categorical columns.
     """
-    def __init__(self, transformation_type: str, description: str, category: str, new_column_name: str, source_columns: List[str], transformation_params: Optional[dict] = None):
+    def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[str] = 'onehot'):
         """
         Initialize the encoding transformation.
         
         Args:
-            transformation_type: Type of the transformation (e.g., 'encode')
-            description: Description of the transformation
-            category: The category of the transformation (e.g., 'encoding')
             new_column_name: The name of the output column after transformation
             source_columns: List of column names to process
-            transformation_params: Parameters for the encoding transformation, like 'onehot', 'label', 'ordinal'
+            param: Parameters for the encoding transformation, like 'onehot', 'label', 'ordinal'
         """
-        super().__init__(transformation_type, description, category, new_column_name, source_columns, transformation_params)
+        super().__init__(new_column_name, source_columns, param)
         self.encoder = None
     
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
