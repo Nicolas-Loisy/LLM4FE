@@ -5,30 +5,24 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from typing import List, Optional
-from src.feature_engineering.transformations.base_transform import BaseTransform
+from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
 
-class EncodingTransform(BaseTransform):
+class EncodingTransform(BaseTransformation):
     """
     Applies encoding transformations to categorical columns.
     """
-    def __init__(self, final_col: str, cols_to_process: List[str], param: Optional[str] = 'onehot'):
+    def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[str] = 'onehot'):
         """
         Initialize the encoding transformation.
         
         Args:
-            final_col: The name of the output column after transformation
-            cols_to_process: List of column names to process
-            param: Type of encoding to apply ('onehot', 'label', 'ordinal')
+            new_column_name: The name of the output column after transformation
+            source_columns: List of column names to process
+            param: Parameters for the encoding transformation, like 'onehot', 'label', 'ordinal'
         """
-        super().__init__(final_col, cols_to_process, param)
+        super().__init__(new_column_name, source_columns, param)
         self.encoder = None
-        
-        if param == 'onehot':
-            self.encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-        elif param == 'label':
-            self.encoder = LabelEncoder()
-        # For ordinal encoding, we'll need to define the categories in the transform method
     
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -44,8 +38,8 @@ class EncodingTransform(BaseTransform):
         
         if self.param == 'onehot':
             # For one-hot encoding
-            if len(self.cols_to_process) == 1:
-                col = self.cols_to_process[0]
+            if len(self.source_columns) == 1:
+                col = self.source_columns[0]
                 if col in df.columns:
                     # Reshape for sklearn's fit_transform
                     values = df[col].values.reshape(-1, 1)
@@ -54,11 +48,11 @@ class EncodingTransform(BaseTransform):
                     # Create new columns for each category
                     categories = self.encoder.categories_[0]
                     for i, category in enumerate(categories):
-                        new_col = f"{self.final_col}_{category}"
+                        new_col = f"{self.new_column_name}_{category}"
                         result_df[new_col] = encoded[:, i]
             else:
                 # Multiple columns for one-hot encoding
-                valid_cols = [col for col in self.cols_to_process if col in df.columns]
+                valid_cols = [col for col in self.source_columns if col in df.columns]
                 if valid_cols:
                     encoded = self.encoder.fit_transform(df[valid_cols])
                     
@@ -71,25 +65,25 @@ class EncodingTransform(BaseTransform):
                     
                     # Create new columns for each category
                     for i, category in enumerate(all_categories):
-                        new_col = f"{self.final_col}_{category}"
+                        new_col = f"{self.new_column_name}_{category}"
                         result_df[new_col] = encoded[:, i]
         
         elif self.param == 'label':
             # For label encoding (works on a single column)
-            if len(self.cols_to_process) == 1:
-                col = self.cols_to_process[0]
+            if len(self.source_columns) == 1:
+                col = self.source_columns[0]
                 if col in df.columns:
-                    result_df[self.final_col] = self.encoder.fit_transform(df[col])
+                    result_df[self.new_column_name] = self.encoder.fit_transform(df[col])
         
         elif self.param == 'ordinal':
             # For ordinal encoding, we need a mapping
             # This is a simplified version; in practice, you'd want to define the order
-            if len(self.cols_to_process) == 1:
-                col = self.cols_to_process[0]
+            if len(self.source_columns) == 1:
+                col = self.source_columns[0]
                 if col in df.columns:
                     # Get unique values and assign ordinal values
                     unique_values = df[col].unique()
                     mapping = {val: i for i, val in enumerate(unique_values)}
-                    result_df[self.final_col] = df[col].map(mapping)
+                    result_df[self.new_column_name] = df[col].map(mapping)
         
         return result_df
