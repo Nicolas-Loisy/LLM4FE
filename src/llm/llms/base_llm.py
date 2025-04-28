@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 
 
-class LLM(ABC):
+class BaseLLM(ABC):
     """
     Abstract base class for Large Language Models.
     """
