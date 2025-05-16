@@ -23,10 +23,11 @@ class TextProcessingTransform(BaseTransformation):
         - new_column_name: Name of the output column or prefix for multiple outputs.
         
     Param:
-        - 'length': Number of characters in the text.
-        - 'word_count': Number of words in the text.
-        - 'keyword': Detect presence of a keyword (param["keyword"])
-        - 'tfidf': Apply TF-IDF encoding (param["max_features"] optionnel)
+        - operation: The type of textual operation to apply. Supported operations are:
+            - 'length': Number of characters in the text.
+            - 'word_count': Number of words in the text.
+            - 'keyword': Detect presence of a keyword (param["keyword"])
+            - 'tfidf': Apply TF-IDF encoding (param["max_features"] optionnel)
     """
 
     def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):

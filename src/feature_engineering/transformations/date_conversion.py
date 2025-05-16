@@ -20,13 +20,13 @@ class DateTimeProcessingTransform(BaseTransformation):
         - new_column_name: Name of the output column or prefix for multiple outputs.
         
     Param:
-        - 'convert': Convert the source columns to datetime format.
-        - 'year': Extract year from the date.
-        - 'month': Extract month from the date.
-        - 'day': Extract day from the date.
-        - 'weekday': Extract the weekday from the date.
-        - 'days_diff': Compute the difference in days between two date columns.
-        - 'period': Categorize dates into predefined periods (param["periods"] expected).
+        - operation: The type of temporal operation to apply. Supported operations are:
+            - 'year': Extract year from the date.
+            - 'month': Extract month from the date.
+            - 'day': Extract day from the date.
+            - 'weekday': Extract the weekday from the date.
+            - 'days_diff': Compute the difference in days between two date columns.
+            - 'period': Categorize dates into predefined periods (param["periods"] expected).
     """
 
     def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
