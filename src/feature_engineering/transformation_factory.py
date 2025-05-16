@@ -5,6 +5,7 @@ from src.feature_engineering.transformations.math_operations import MathOperatio
 from src.feature_engineering.transformations.encoding import EncodingTransform
 from src.feature_engineering.transformations.scaling import ScalingTransform
 from src.feature_engineering.transformations.text_processing import TextProcessingTransform
+from src.feature_engineering.transformations.date_conversion import DateTimeProcessingTransform
 
 class TransformationFactory:
     """
@@ -61,6 +62,9 @@ class TransformationFactory:
 
         if provider == "text_processing":
             return TextProcessingTransform(new_column_name, source_columns, param)
+
+        if provider == "datetime_processing":
+            return DateTimeProcessingTransform(new_column_name, source_columns, param)
 
         # Add more transformations as needed
         raise ValueError(f"Transformation provider '{provider}' not found.")

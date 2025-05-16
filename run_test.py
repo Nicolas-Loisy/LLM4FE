@@ -34,6 +34,34 @@ if __name__ == "__main__":
             "transformation_type": "text_processing",
             "transformation_params": {"operation": "keyword", "keyword": "test"}
         },
+        {
+            "new_column_name": "tfidf",
+            "source_columns": ["TextColumn"],
+            "transformation_type": "text_processing",
+            "transformation_params": {"operation": "tfidf", "max_features": 1}
+        },
+        {
+            "new_column_name": "date_column1_day",
+            "source_columns": ["DateColumn1"],
+            "transformation_type": "datetime_processing",
+            "transformation_params": {"operation": "day"}
+        },
+        {
+            "new_column_name": "days_diff",
+            "source_columns": ["DateColumn1", "DateColumn2"],
+            "transformation_type": "datetime_processing",
+            "transformation_params": {"operation": "days_diff"}
+        },
+        {
+            "new_column_name": "date_quarter",
+            "source_columns": ["DateColumn1"],
+            "transformation_type": "datetime_processing",
+            "transformation_params": {
+                "operation": "period",
+                "freq": "Q"
+            }
+        }
+
     ]
     new_dataset = fe_pipeline.run()
     print(new_dataset.head())
