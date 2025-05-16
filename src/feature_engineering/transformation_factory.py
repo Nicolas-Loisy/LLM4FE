@@ -6,7 +6,6 @@ from src.feature_engineering.transformations.encoding import EncodingTransform
 from src.feature_engineering.transformations.scaling import ScalingTransform
 from src.feature_engineering.transformations.text_processing import TextProcessingTransform
 
-
 class TransformationFactory:
     """
     Factory class for creating transformation instances based on configuration.
@@ -17,7 +16,7 @@ class TransformationFactory:
         MathOperationsTransform.PROVIDER,
         # EncodingTransform.PROVIDER,
         # ScalingTransform.PROVIDER,
-        # TextProcessingTransform.PROVIDER,
+        TextProcessingTransform.PROVIDER,
         # TODO : Add other transformation providers here
     ]
 
@@ -27,7 +26,7 @@ class TransformationFactory:
         # TODO : Add descriptions for other transformations
         # EncodingTransform.PROVIDER: EncodingTransform.DESCRIPTION,
         # ScalingTransform.PROVIDER: ScalingTransform.DESCRIPTION,
-        # TextProcessingTransform.PROVIDER: TextProcessingTransform.DESCRIPTION,
+        TextProcessingTransform.PROVIDER: TextProcessingTransform.DESCRIPTION,
     }
 
 

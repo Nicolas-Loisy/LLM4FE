@@ -1,6 +1,6 @@
-Column1,Column2,Column3
-42,87,15
-63,29,74
-91,53,38
-12,76,49
-85,34,67
+Column1,Column2,Column3,TextColumn
+42,87,15,Hello world
+63,29,74,This is a test
+91,53,38,Another row here
+12,76,49,Short this
+85,34,67,Some longer text with several words

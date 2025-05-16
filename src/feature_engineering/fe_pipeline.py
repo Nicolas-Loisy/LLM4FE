@@ -8,13 +8,13 @@ from typing import List, Optional, Literal
 
 from src.feature_engineering.transformation_factory import TransformationFactory
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
-from src.llm import LLMFactory, LLM
+#from src.llm import LLMFactory, LLM
 
 
 class Transformation(BaseModel):
     finalCol: str
     colToProcess: List[str]
-    providerTransform: Literal[*TransformationFactory.PROVIDER_TRANSFORMATIONS] # Récupère dynamiquement les transformations disponibles
+    providerTransform: Literal[TransformationFactory.PROVIDER_TRANSFORMATIONS] # Récupère dynamiquement les transformations disponibles
     param: Optional[Dict[str, Any]] = None
 
 
