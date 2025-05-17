@@ -10,7 +10,7 @@ from src.feature_engineering.transformations.base_transformation import BaseTran
 from src.llm.llm_factory import LLMFactory
 from src.utils.config import get_config
 
-logger = logging.getLogger("LLM4FE")
+logger = logging.getLogger(__name__)
 config = get_config()
 
 class Transformation(BaseModel):
