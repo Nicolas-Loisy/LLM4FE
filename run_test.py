@@ -1,7 +1,6 @@
 from pathlib import Path
 import pandas as pd
 
-from src.orchestrator.orchestrator import Orchestrator
 from src.utils.logger import init_logger
 from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline, Transformation
 
@@ -139,7 +138,8 @@ if __name__ == "__main__":
         }
 
     ]
+    fe_pipeline.generate_transformations()
     new_dataset = fe_pipeline.run()
     print(new_dataset.head())
 
-    #print(Transformation.model_json_schema())
+    # print(Transformation.model_json_schema())
