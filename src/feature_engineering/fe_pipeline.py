@@ -8,7 +8,7 @@ from typing import List, Optional, Literal
 
 from src.feature_engineering.transformation_factory import TransformationFactory
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
-from src.llm import LLMFactory, LLM
+from src.llm.llm_factory import LLMFactory
 
 
 class Transformation(BaseModel):
