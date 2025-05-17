@@ -8,12 +8,14 @@ from typing import List, Optional, Literal
 from src.feature_engineering.transformation_factory import TransformationFactory
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
 from src.llm.llm_factory import LLMFactory
+from src.utils.config import get_config
 
 logger = logging.getLogger("LLM4FE")
+config = get_config()
 
 class Transformation(BaseModel):
     """
-    Model representing a single transformation with validation.
+    Pydantic Model representing a single transformation
     """
     final_col: str
     cols_to_process: List[str]
@@ -22,7 +24,7 @@ class Transformation(BaseModel):
 
 class DatasetStructure(BaseModel):
     """
-    Container for dataset transformations.
+    Pydantic Model representing the structure of the dataset modifications.
     """
     datasetStructure: List[Transformation]
 
@@ -35,16 +37,14 @@ class FeatureEngineeringPipeline:
             dataset_path: Path to the input dataset (CSV file).
             dataset_description: Optional description of the dataset to guide transformations.
         """
-        self.dataset_path = dataset_path
-        self.dataset_description = dataset_description
+        self.dataset_path: Path = Path(dataset_path)
+        self.dataset_description: Optional[str] = dataset_description
         self.transformations: List[Transformation] = []
         self.input_dataset: Optional[pd.DataFrame] = None
         self.transformed_dataset: Optional[pd.DataFrame] = None
-        self.dataset_description = dataset_description
         
-        # TODO : Rajouter le fichier de config une fois créer
         try:
-            self.llm = LLMFactory.create_llm(llm_config)
+            self.llm = LLMFactory.create_llm(config.get("llm"))
         except Exception as e:
             logger.error(f"Error initialising LLM: {e}")
             self.llm = None
@@ -91,23 +91,23 @@ class FeatureEngineeringPipeline:
         transforms_text = "Available transformations with descriptions:\n" + "\n".join(available_transforms)
         
         prompt = f"""
-You are a data scientist tasked with creating feature engineering transformations for a machine learning model.
-        
-Here's information about the dataset:
-{dataset_info}
+        You are a data scientist tasked with creating feature engineering transformations for a machine learning model.
+                
+        Here's information about the dataset:
+        {dataset_info}
 
-Dataset description: {self.dataset_description or 'No description provided'}
+        Dataset description: {self.dataset_description or 'No description provided'}
 
-{transforms_text}
+        {transforms_text}
 
-Generate a list of feature engineering transformations that would improve model performance.
-For each transformation, specify:
-1. The new column name (new_column_name)
-2. The source columns (source_columns)
-3. The category: 'math', 'aggregation', 'encoding', 'scaling', 'text', or 'custom'
-4. Any transformation parameters (transformation_params)
+        Generate a list of feature engineering transformations that would improve model performance.
+        For each transformation, specify:
+        1. The new column name (new_column_name)
+        2. The source columns (source_columns)
+        3. The category: 'math', 'aggregation', 'encoding', 'scaling', 'text', or 'custom'
+        4. Any transformation parameters (transformation_params)
 
-Return the transformations in a structured JSON format.
+        Return the transformations in a structured JSON format.
         """
 
         try:
