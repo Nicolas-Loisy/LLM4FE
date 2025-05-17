@@ -1,6 +1,6 @@
-Column1,Column2,Column3
-42,87,15
-63,29,74
-91,53,38
-12,76,49
-85,34,67
+Column1,Column2,Column3,TextColumn,DateColumn1,DateColumn2
+42,87,15,Hello world,2023-01-15,2023-01-20
+63,29,74,This is a test,2022-05-22,2023-05-23
+91,53,38,Another row here,2021-12-30,2023-02-25
+12,76,49,Short this,2023-06-15,2023-06-20
+85,34,67,Some longer text with several words,2021-11-05,2022-11-06
