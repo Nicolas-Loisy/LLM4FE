@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 import pandas as pd
 
 from src.feature_engineering.transformation_factory import TransformationFactory
@@ -193,12 +193,12 @@ class FeatureEngineeringPipeline:
         
         return self.transformed_dataset
 
-    def run(self) -> Dict[str, Any]:
+    def run(self) -> pd.DataFrame:
         """
         Main entry point to run the complete feature engineering pipeline.
         
         Returns:
-            Dictionary containing information about the transformations and paths.
+            DataFrame containing the transformed dataset.
         """
         logger.info("Starting Feature Engineering pipeline...")
                 

@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, Any, Optional
+from typing import Optional
+import pandas as pd
 
 from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
 # from src.automl.automl_pipeline import AutoMLPipeline
@@ -21,7 +22,6 @@ class Orchestrator:
 
         self.config = get_config(config_path)
         # # self.automl_pipeline = AutoMLPipeline()
-        # # self.benchmark_pipeline = BenchmarkPipeline()
 
         # self.current_version = 1
         # self.versions_info = {}
@@ -34,7 +34,7 @@ class Orchestrator:
         # os.makedirs(self.models_dir, exist_ok=True)
         # os.makedirs(self.logs_dir, exist_ok=True)
 
-    def run(self, dataset_path: str, dataset_description: Optional[str] = None, iterations: int = 1) -> Dict[str, Any]:
+    def run(self, dataset_path: str, dataset_description: Optional[str] = None, iterations: int = 1) -> pd.DataFrame:
         """
         Main entry point to run the complete orchestration pipeline.
 
@@ -44,7 +44,7 @@ class Orchestrator:
             iterations: Number of pipeline iterations to run
 
         Returns:
-            Dictionary containing information about the best model version
+            DataFrame containing the transformed dataset
         """
         logger.info("Starting LLM4FE orchestration pipeline...")
 
