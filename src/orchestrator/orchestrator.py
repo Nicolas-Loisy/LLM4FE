@@ -1,9 +1,4 @@
-# Orchestrator for managing the pipeline
-import json
-import os
 import logging
-
-from datetime import datetime
 from typing import Dict, Any, Optional
 
 from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
@@ -38,6 +33,39 @@ class Orchestrator:
         # # Create directories if they don't exist
         # os.makedirs(self.models_dir, exist_ok=True)
         # os.makedirs(self.logs_dir, exist_ok=True)
+
+    def run(self, dataset_path: str, dataset_description: Optional[str] = None, iterations: int = 1) -> Dict[str, Any]:
+        """
+        Main entry point to run the complete orchestration pipeline.
+
+        Args:
+            dataset_path: Path to the input dataset
+            dataset_description: Optional description of the dataset for feature engineering
+            iterations: Number of pipeline iterations to run
+
+        Returns:
+            Dictionary containing information about the best model version
+        """
+        logger.info("Starting LLM4FE orchestration pipeline...")
+
+        # Store the input dataset path
+        self.input_dataset_path = dataset_path
+        self.feature_engineering_pipeline = FeatureEngineeringPipeline(
+            dataset_path=dataset_path,
+            dataset_description=dataset_description,
+        )
+        return self.feature_engineering_pipeline.run()
+
+
+        # # Run the pipeline iterations
+        # best_version = self.iterate_pipeline(iterations=iterations)
+
+        # # Return the information about the best version
+        # if best_version is not None:
+        #     return self.versions_info[best_version]
+        # else:
+        #     return {"status": "completed", "message": "No best version identified"}
+
 
     # def manage_versions(self):
     #     """
@@ -277,34 +305,3 @@ class Orchestrator:
 
     #     return self.versions_info[self.current_version]
 
-    def run(self, dataset_path: str, dataset_description: Optional[str] = None, iterations: int = 1) -> Dict[str, Any]:
-        """
-        Main entry point to run the complete orchestration pipeline.
-
-        Args:
-            dataset_path: Path to the input dataset
-            dataset_description: Optional description of the dataset for feature engineering
-            iterations: Number of pipeline iterations to run
-
-        Returns:
-            Dictionary containing information about the best model version
-        """
-        print("Starting LLM4FE orchestration pipeline...")
-
-        # Store the input dataset path
-        self.input_dataset_path = dataset_path
-        self.feature_engineering_pipeline = FeatureEngineeringPipeline(
-            dataset_path=dataset_path,
-            dataset_description=dataset_description,
-        )
-        return self.feature_engineering_pipeline.run()
-
-
-        # # Run the pipeline iterations
-        # best_version = self.iterate_pipeline(iterations=iterations)
-
-        # # Return the information about the best version
-        # if best_version is not None:
-        #     return self.versions_info[best_version]
-        # else:
-        #     return {"status": "completed", "message": "No best version identified"}

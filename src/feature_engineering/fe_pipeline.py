@@ -52,8 +52,8 @@ class FeatureEngineeringPipeline:
                 raise FileNotFoundError(f"File not found: {self.dataset_path}")
             
             self.input_dataset = pd.read_csv(self.dataset_path)
-            print(f"Dataset loaded: {self.input_dataset.head()}")
             logger.info(f"Dataset successfully loaded: {self.input_dataset.shape}")
+            logger.debug(f"Dataset loaded: {self.input_dataset.head()}")
             return True
         except Exception as e:
             logger.error(f"Error loading dataset: {e}")
@@ -98,13 +98,14 @@ class FeatureEngineeringPipeline:
 
         try:
             # Use the LLM with format support
+            logger.info("Generating transformations with LLM...")
             response: DatasetStructure = self.llm.generate_with_format(
                 prompt=prompt,
                 response_format=DatasetStructure
             )
-            print("LLM response:")
-            print(response)
-            
+            logger.info("LLM response received.")
+            logger.debug(f"LLM response: {response}")
+
             # Extract the transformations from the response
             if isinstance(response, DatasetStructure):
                 self.transformations = response.datasetStructure
@@ -115,7 +116,6 @@ class FeatureEngineeringPipeline:
                 return []
             
         except Exception as e:
-            print(f"Error generating transformations: {e}")
             logger.error(f"Error generating transformations: {e}")
             return []
 

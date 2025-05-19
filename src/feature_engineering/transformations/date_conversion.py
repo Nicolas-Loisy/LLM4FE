@@ -1,8 +1,11 @@
 import pandas as pd
+import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
+
+logger = logging.getLogger(__name__)
 
 class DateTimeProcessingTransform(BaseTransformation):
     """
@@ -62,37 +65,37 @@ class DateTimeProcessingTransform(BaseTransformation):
             if col not in df.columns:
                 raise ValueError(f"Column '{col}' not found in dataframe.")
             if not pd.api.types.is_datetime64_any_dtype(result_df[col]):
-                print(f"Converting '{col}' to datetime")
+                logger.info(f"Converting '{col}' to datetime")
                 result_df[col] = pd.to_datetime(result_df[col], errors="coerce")
 
 
         col = self.source_columns[0]
                 
         if self.param["operation"] == 'year':
-            print("Extracting year")
+            logger.info("Extracting year")
             result_df[self.new_column_name] = result_df[col].dt.year
 
         elif self.param["operation"] == 'month':
-            print("Extracting month")
+            logger.info("Extracting month")
             result_df[self.new_column_name] = result_df[col].dt.month
         
         elif self.param["operation"] == 'day':
-            print("Extracting day")
+            logger.info("Extracting day")
             result_df[self.new_column_name] = result_df[col].dt.day
 
         elif self.param["operation"] == 'weekday':
-            print("Extracting weekday")
+            logger.info("Extracting weekday")
             result_df[self.new_column_name] = result_df[col].dt.weekday
 
         elif self.param["operation"] == 'days_diff':
-            print("Calculating date difference in days")
+            logger.info("Calculating date difference in days")
             if len(self.source_columns) < 2:
                 raise ValueError("Two date columns are required for 'days_diff' operation.")
             second_col = self.source_columns[1]
             result_df[self.new_column_name] = (result_df[second_col] - result_df[col]).dt.days
 
         elif self.param["operation"] == 'period':
-            print("Grouping by standard time period")
+            logger.info("Grouping by standard time period")
             freq = self.param.get("freq")
             if not freq:
                 raise ValueError("Missing 'freq' in param for period grouping.")

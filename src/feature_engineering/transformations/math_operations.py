@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
+import logging
 from typing import Dict, Any, Optional, List
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
+logger = logging.getLogger(__name__)
 
 class MathOperationsTransform(BaseTransformation):
     """
@@ -65,17 +67,17 @@ class MathOperationsTransform(BaseTransformation):
         if len(self.source_columns) == 1 :
             col = self.source_columns[0]
             if self.param["operation"] == 'log':
-                print("log")
+                logger.info("log")
                 # Apply log1p to handle zeros and negative values
                 result_df[self.new_column_name] = np.log1p(df[col])
             
             elif self.param["operation"] == 'sqrt':
-                print("sqrt")
+                logger.info("sqrt")
                 # Apply square root, clipping negative values to zero
                 result_df[self.new_column_name] = np.sqrt(df[col].clip(lower=0))
             
             elif self.param["operation"] == 'square':
-                print("square")
+                logger.info("square")
                 # Square the column values
                 result_df[self.new_column_name] = df[col] ** 2
         
@@ -85,31 +87,28 @@ class MathOperationsTransform(BaseTransformation):
             
             if len(valid_cols) > 0:
                 if self.param["operation"] == 'diff':
-                    print("diff")
+                    logger.info("diff")
                     # Calculate difference between two columns
                     result_df[self.new_column_name] = df[valid_cols[0]] - df[valid_cols[1]]
                 
                 elif self.param["operation"] == 'ratio':
-                    print("ratio")
+                    logger.info("ratio")
                     # Calculate ratio between two columns, handling division by zero
                     result_df[self.new_column_name] = df[valid_cols[0]] / df[valid_cols[1]].replace(0, np.nan)
                 
                 elif self.param["operation"] == 'mean':
-                    print("mean")
+                    logger.info("mean")
                     # Calculate mean of columns
                     result_df[self.new_column_name] = df[self.source_columns].mean(axis=1)
         
 
                 if self.param["operation"] == 'multiply':
-                    print("multiply")         
+                    logger.info("multiply")        
                     # Multiply two columns
                     result_df[self.new_column_name] = df[self.source_columns].prod(axis=1)
                 
                 elif self.param["operation"] == 'addition':
-                    print("add")
+                    logger.info("Adding columns")
                     # Calculate sum of columns
                     result_df[self.new_column_name] = df[self.source_columns].sum(axis=1)
-
-
-        
         return result_df
