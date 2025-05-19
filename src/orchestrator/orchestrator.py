@@ -8,20 +8,18 @@ from typing import Dict, Any, Optional
 
 from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
 # from src.automl.automl_pipeline import AutoMLPipeline
-# from src.benchmark.benchmark_pipeline import BenchmarkPipeline
 from src.utils.config import get_config
 
 logger = logging.getLogger(__name__)
 
 
 class Orchestrator:
-    def __init__(self, config_path: str = "data/config.json", dataset_description: Optional[str] = None):
+    def __init__(self, config_path: str = "data/config.json"):
         """
         Initialize the orchestrator.
 
         Args:
             config_path: Path to the configuration file
-            dataset_description: Optional description of the dataset for feature engineering
         """
 
         logger.info("Initializing Orchestrator...")
@@ -279,12 +277,13 @@ class Orchestrator:
 
     #     return self.versions_info[self.current_version]
 
-    def run(self, dataset_path: str, iterations: int = 1) -> Dict[str, Any]:
+    def run(self, dataset_path: str, dataset_description: Optional[str] = None, iterations: int = 1) -> Dict[str, Any]:
         """
         Main entry point to run the complete orchestration pipeline.
 
         Args:
             dataset_path: Path to the input dataset
+            dataset_description: Optional description of the dataset for feature engineering
             iterations: Number of pipeline iterations to run
 
         Returns:
@@ -294,12 +293,18 @@ class Orchestrator:
 
         # Store the input dataset path
         self.input_dataset_path = dataset_path
+        self.feature_engineering_pipeline = FeatureEngineeringPipeline(
+            dataset_path=dataset_path,
+            dataset_description=dataset_description,
+        )
+        return self.feature_engineering_pipeline.run()
 
-        # Run the pipeline iterations
-        best_version = self.iterate_pipeline(iterations=iterations)
 
-        # Return the information about the best version
-        if best_version is not None:
-            return self.versions_info[best_version]
-        else:
-            return {"status": "completed", "message": "No best version identified"}
+        # # Run the pipeline iterations
+        # best_version = self.iterate_pipeline(iterations=iterations)
+
+        # # Return the information about the best version
+        # if best_version is not None:
+        #     return self.versions_info[best_version]
+        # else:
+        #     return {"status": "completed", "message": "No best version identified"}

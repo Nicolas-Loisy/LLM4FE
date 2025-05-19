@@ -1,9 +1,9 @@
-from pathlib import Path
-import pandas as pd
 import logging
-from typing import Dict, List, Any, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Union
+
+import pandas as pd
 from pydantic import BaseModel
-from typing import List, Optional, Literal
 
 from src.feature_engineering.transformation_factory import TransformationFactory
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
@@ -11,7 +11,6 @@ from src.llm.llm_factory import LLMFactory
 from src.utils.config import get_config
 
 logger = logging.getLogger(__name__)
-config = get_config()
 
 class Transformation(BaseModel):
     """
@@ -20,7 +19,7 @@ class Transformation(BaseModel):
     final_col: str
     cols_to_process: List[str]
     provider_transform: Literal[*TransformationFactory.PROVIDER_TRANSFORMATIONS] # Dynamically retrieves available transformations
-    params: Optional[Dict[str, Any]] = None
+    params: Optional[Dict[str, Union[str, int, float, bool, None]]] = None
 
 class DatasetStructure(BaseModel):
     """
@@ -42,9 +41,10 @@ class FeatureEngineeringPipeline:
         self.transformations: List[Transformation] = []
         self.input_dataset: Optional[pd.DataFrame] = None
         self.transformed_dataset: Optional[pd.DataFrame] = None
+        self.config = get_config()
         
         try:
-            self.llm = LLMFactory.create_llm(config.get("llm"))
+            self.llm = LLMFactory.create_llm(self.config.get("llm"))
         except Exception as e:
             logger.error(f"Error initialising LLM: {e}")
             self.llm = None
@@ -67,6 +67,7 @@ class FeatureEngineeringPipeline:
                 raise FileNotFoundError(f"File not found: {self.dataset_path}")
             
             self.input_dataset = pd.read_csv(self.dataset_path)
+            print(f"Dataset loaded: {self.input_dataset.head()}")
             logger.info(f"Dataset successfully loaded: {self.input_dataset.shape}")
             return True
         except Exception as e:
@@ -112,23 +113,16 @@ class FeatureEngineeringPipeline:
 
         try:
             # Use the LLM with format support
-            schema = DatasetStructure.model_json_schema()
-            
-            response = self.llm.generate_with_format(
+            response: DatasetStructure = self.llm.generate_with_format(
                 prompt=prompt,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "DatasetStructure",
-                        "strict": True,
-                        "schema": schema
-                    }
-                }
+                response_format=DatasetStructure
             )
+            print("LLM response:")
+            print(response)
             
             # Extract the transformations from the response
-            if isinstance(response, dict) and 'datasetStructure' in response:
-                self.transformations = response['datasetStructure']
+            if isinstance(response, DatasetStructure):
+                self.transformations = response.datasetStructure
                 logger.info(f"Generated {len(self.transformations)} transformations.")
                 return self.transformations
             else:
@@ -136,8 +130,9 @@ class FeatureEngineeringPipeline:
                 return []
             
         except Exception as e:
+            print(f"Error generating transformations: {e}")
             logger.error(f"Error generating transformations: {e}")
-            return[]
+            return []
 
     def get_dataset_info(self) -> str:
         """
