@@ -1,37 +1,20 @@
 from typing import List, Dict, Optional, Union, Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
+
+from src.feature_engineering.transformation_factory import TransformationFactory
 
 
-# class NormalizationParams(BaseModel):
-#     transformation_type: Literal['normalization']
-#     method: Literal['minmax', 'zscore']
-#     range_min: float
-#     range_max: float
-
-# class AggregationParams(BaseModel):
-#     transformation_type: Literal['aggregation']
-#     operation: Literal['sum', 'mean', 'max', 'min']
-#     window_size: int
-
-# class EncodingParams(BaseModel):
-#     transformation_type: Literal['encoding']
-#     encoding_type: Literal['onehot', 'label']
-
-# Define a type for transformation parameters
-TransformationParams = Union[
-    # NormalizationParams, 
-    # AggregationParams, 
-    # EncodingParams, 
-    Dict[str, str | int]
-]
-
-class ColumnStructure(BaseModel):
-    new_column_name: str = Field(..., description="The new column name")
-    column_description: str = Field(..., description="The description of the column")
-    source_columns: List[str] = Field(..., description="List of source column names")
-    transformation_type: str = Field(..., description="Type of transformation applied")
-    # Updated to use specific transformation parameter models
-    transformation_params: Optional[TransformationParams] = Field(default_factory=dict, description="Parameters for transformation")
+class Transformation(BaseModel):
+    """
+    Pydantic Model representing a single transformation
+    """
+    final_col: str = Field(..., description="The name of the resulting column after transformation")
+    cols_to_process: List[str] = Field(..., description="List of source columns to process")
+    provider_transform: Literal[*TransformationFactory.PROVIDER_TRANSFORMATIONS] = Field(..., description="The transformation provider to use")
+    params: Optional[Dict[str, Union[str, int, float, bool, None]]] = Field(None, description="Optional parameters for the transformation")
 
 class DatasetStructure(BaseModel):
-    dataset_structure: List[ColumnStructure] = Field(..., description="List of column structures")
+    """
+    Pydantic Model representing the structure of the dataset modifications.
+    """
+    datasetStructure: List[Transformation] = Field(..., description="List of transformations applied to the dataset")

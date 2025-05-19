@@ -1,31 +1,16 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
-
+from typing import Any, Dict, List, Optional
 import pandas as pd
-from pydantic import BaseModel
 
 from src.feature_engineering.transformation_factory import TransformationFactory
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
 from src.llm.llm_factory import LLMFactory
+from src.models.dataset_model import DatasetStructure, Transformation
 from src.utils.config import get_config
 
 logger = logging.getLogger(__name__)
 
-class Transformation(BaseModel):
-    """
-    Pydantic Model representing a single transformation
-    """
-    final_col: str
-    cols_to_process: List[str]
-    provider_transform: Literal[*TransformationFactory.PROVIDER_TRANSFORMATIONS] # Dynamically retrieves available transformations
-    params: Optional[Dict[str, Union[str, int, float, bool, None]]] = None
-
-class DatasetStructure(BaseModel):
-    """
-    Pydantic Model representing the structure of the dataset modifications.
-    """
-    datasetStructure: List[Transformation]
 
 class FeatureEngineeringPipeline:
     def __init__(self, dataset_path: str, dataset_description: Optional[str] = None):
