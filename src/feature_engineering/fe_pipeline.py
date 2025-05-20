@@ -228,9 +228,9 @@ class FeatureEngineeringPipeline:
         logger.info(f"Saved version {version} to {output_path}")
         return output_path
 
-    def save_configuration(self, version: int, transformations: List[Transformation], dataset_description: str, input_path: Path, output_path: Path) -> Path:
+    def save_fe_configuration(self, version: int, transformations: List[Transformation], dataset_description: str, input_path: Path, output_path: Path) -> Path:
         """
-        Save configuration information for a version.
+        Save fe configuration information for a version.
         
         Args:
             version: Version number
@@ -240,7 +240,7 @@ class FeatureEngineeringPipeline:
             output_path: Path to output dataset
             
         Returns:
-            Path to the saved configuration file
+            Path to the saved fe configuration file
         """
         config_filename = f"{self.dataset_path.stem}_config_v{version}.json"
         config_path = self.output_dir / config_filename
@@ -265,7 +265,7 @@ class FeatureEngineeringPipeline:
             "columns": list(self.transformed_dataset.columns)
         }
         
-        # Full configuration with version history
+        # Full fe configuration with version history
         config_data = {
             "current_version": current_version_data,
             "version_history": self.version_history  # Include all previous versions
@@ -274,7 +274,7 @@ class FeatureEngineeringPipeline:
         with open(config_path, 'w') as f:
             json.dump(config_data, f, indent=2)
         
-        logger.info(f"Saved configuration for version {version} to {config_path}")
+        logger.info(f"Saved fe configuration for version {version} to {config_path}")
         return config_path
 
     def run(self, iterations: int = 1) -> Tuple[pd.DataFrame, List[Dict[str, Any]]]:
@@ -311,7 +311,7 @@ class FeatureEngineeringPipeline:
                 # Save the transformed dataset
                 output_path = self.save_versioned_dataset(current_dataset, self.version)
                 
-                # Update history before saving configuration
+                # Update history before saving fe configuration
                 version_entry = {
                     "version": self.version,
                     "input_path": str(input_path),
@@ -322,8 +322,8 @@ class FeatureEngineeringPipeline:
                 }
                 self.version_history.append(version_entry)
                 
-                # Save configuration with all history
-                config_path = self.save_configuration(
+                # Save fe configuration with all history
+                config_path = self.save_fe_configuration(
                     self.version, 
                     transformations, 
                     description or self.dataset_description or "", 
