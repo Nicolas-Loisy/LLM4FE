@@ -17,4 +17,5 @@ class DatasetStructure(BaseModel):
     """
     Pydantic Model representing the structure of the dataset modifications.
     """
+    dataset_description: Optional[str] = Field(None, description="Description of the dataset with a brief description of each column")
     datasetStructure: List[Transformation] = Field(..., description="List of transformations applied to the dataset")

@@ -1,7 +1,9 @@
 import logging
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 import pandas as pd
+import json
+import datetime
 
 from src.feature_engineering.transformation_factory import TransformationFactory
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
@@ -27,6 +29,10 @@ class FeatureEngineeringPipeline:
         self.input_dataset: Optional[pd.DataFrame] = None
         self.transformed_dataset: Optional[pd.DataFrame] = None
         self.config = get_config()
+        self.version = 0
+        self.version_history = []
+        self.output_dir = self.dataset_path.parent / "versions"
+        self.output_dir.mkdir(exist_ok=True)
         
         try:
             self.llm = LLMFactory.create_llm(self.config.get("llm"))
@@ -69,12 +75,12 @@ class FeatureEngineeringPipeline:
         self.transformations = transformations
         logger.info(f"Transformations set manually: {len(self.transformations)} transformations.")
 
-    def generate_transformations(self) -> List[Transformation]:
+    def generate_transformations(self) -> Tuple[List[Transformation], Optional[str]]:
         """
         Generate transformations using LLM.
             
         Returns:
-            List of transformation configurations.
+            Tuple[List[Transformation], Optional[str]]: List of transformation configurations and optional dataset description.
         """
         logger.info("Generating transformations...")
         
@@ -119,15 +125,17 @@ class FeatureEngineeringPipeline:
             # Extract the transformations from the response
             if isinstance(response, DatasetStructure):
                 self.transformations = response.datasetStructure
+                self.dataset_description = response.dataset_description
+                logger.info(f"Dataset description: {self.dataset_description}")
                 logger.info(f"Generated {len(self.transformations)} transformations.")
-                return self.transformations
+                return self.transformations, self.dataset_description
             else:
                 logger.error(f"Unexpected response format from LLM: {response}")
-                return []
-            
+                return [], None
+
         except Exception as e:
             logger.error(f"Error generating transformations: {e}")
-            return []
+            return [], None
 
     def get_dataset_info(self) -> str:
         """
@@ -203,23 +211,138 @@ class FeatureEngineeringPipeline:
         
         return self.transformed_dataset
 
-    def run(self) -> Tuple[pd.DataFrame, List[Transformation]]:
+    def save_versioned_dataset(self, dataset: pd.DataFrame, version: int) -> Path:
         """
-        Main entry point to run the complete feature engineering pipeline.
+        Save a versioned dataset to CSV.
         
+        Args:
+            dataset: DataFrame to save
+            version: Version number
+            
         Returns:
-            DataFrame containing the transformed dataset.
+            Path to the saved dataset
         """
-        logger.info("Starting Feature Engineering pipeline...")
-                
-        self.generate_transformations()
-        
-        # Apply transformations
-        transformed_dataset = self.apply_transformations()
-        
-        if transformed_dataset is not None:
-            logger.info("Pipeline completed successfully.")
-        else:
-            logger.error("Pipeline failed to produce transformed dataset.")
+        filename = f"{self.dataset_path.stem}_v{version}.csv"
+        output_path = self.output_dir / filename
+        dataset.to_csv(output_path, index=False)
+        logger.info(f"Saved version {version} to {output_path}")
+        return output_path
 
-        return transformed_dataset, self.transformations
+    def save_configuration(self, version: int, transformations: List[Transformation], dataset_description: str, input_path: Path, output_path: Path) -> Path:
+        """
+        Save configuration information for a version.
+        
+        Args:
+            version: Version number
+            transformations: Applied transformations
+            dataset_description: Dataset description
+            input_path: Path to input dataset
+            output_path: Path to output dataset
+            
+        Returns:
+            Path to the saved configuration file
+        """
+        config_filename = f"{self.dataset_path.stem}_config_v{version}.json"
+        config_path = self.output_dir / config_filename
+        
+        # Convert transformations directly to JSON-serializable format
+        json_transformations = []
+        for t in transformations:
+            json_transformations.append(t.model_dump())
+
+        # Current version data
+        current_version_data = {
+            "version": version,
+            "timestamp": datetime.datetime.now().isoformat(),
+            "dataset_description": dataset_description,
+            "input_file": str(input_path),
+            "output_file": str(output_path),
+            "dataset_shape": {
+                "rows": self.transformed_dataset.shape[0],
+                "columns": self.transformed_dataset.shape[1]
+            },
+            "transformations": json_transformations,
+            "columns": list(self.transformed_dataset.columns)
+        }
+        
+        # Full configuration with version history
+        config_data = {
+            "current_version": current_version_data,
+            "version_history": self.version_history  # Include all previous versions
+        }
+        
+        with open(config_path, 'w') as f:
+            json.dump(config_data, f, indent=2)
+        
+        logger.info(f"Saved configuration for version {version} to {config_path}")
+        return config_path
+
+    def run(self, iterations: int = 1) -> Tuple[pd.DataFrame, List[Dict[str, Any]]]:
+        """
+        Main entry point to run the complete feature engineering pipeline with versioning support.
+        
+        Args:
+            iterations: Number of transformation iterations to perform
+            
+        Returns:
+            Tuple containing:
+            - DataFrame with the final transformed dataset
+            - List of version history dictionaries with metadata for each version
+        """
+        logger.info(f"Starting Feature Engineering pipeline with {iterations} iterations...")
+        
+        current_dataset = self.input_dataset.copy()
+        input_path = self.dataset_path
+        
+        for i in range(iterations):
+            self.version += 1
+            logger.info(f"Starting iteration {i+1}/{iterations} (version {self.version})...")
+            
+            # Set current dataset as the input
+            self.input_dataset = current_dataset
+            
+            # Generate transformations for this iteration
+            transformations, description = self.generate_transformations()
+            
+            # Apply transformations
+            current_dataset = self.apply_transformations()
+            
+            if current_dataset is not None:
+                # Save the transformed dataset
+                output_path = self.save_versioned_dataset(current_dataset, self.version)
+                
+                # Update history before saving configuration
+                version_entry = {
+                    "version": self.version,
+                    "input_path": str(input_path),
+                    "output_path": str(output_path),
+                    "transformations_count": len(transformations),
+                    "description": description,
+                    "timestamp": datetime.datetime.now().isoformat(),
+                }
+                self.version_history.append(version_entry)
+                
+                # Save configuration with all history
+                config_path = self.save_configuration(
+                    self.version, 
+                    transformations, 
+                    description or self.dataset_description or "", 
+                    input_path, 
+                    output_path
+                )
+                
+                # Add config path to history entry
+                self.version_history[-1]["config_path"] = str(config_path)
+                
+                logger.info(f"Iteration {i+1} completed successfully, created version {self.version}")
+                
+                # Update for next iteration
+                input_path = output_path
+            else:
+                logger.error(f"Iteration {i+1} failed to produce transformed dataset.")
+                break
+        
+        self.transformed_dataset = current_dataset
+        logger.info(f"Pipeline completed with {self.version} versions created.")
+        
+        return self.transformed_dataset, self.version_history
