@@ -54,7 +54,8 @@ class Orchestrator:
             dataset_path=dataset_path,
             dataset_description=dataset_description,
         )
-        return self.feature_engineering_pipeline.run()
+        transformed_dataset, transformations = self.feature_engineering_pipeline.run()
+        return transformed_dataset
 
 
         # # Run the pipeline iterations

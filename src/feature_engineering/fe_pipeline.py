@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import pandas as pd
 
 from src.feature_engineering.transformation_factory import TransformationFactory
@@ -58,6 +58,16 @@ class FeatureEngineeringPipeline:
         except Exception as e:
             logger.error(f"Error loading dataset: {e}")
             return False
+
+    def set_transformations(self, transformations: List[Transformation]):
+        """
+        Set transformations manually.
+        
+        Args:
+            transformations: List of transformation configurations.
+        """
+        self.transformations = transformations
+        logger.info(f"Transformations set manually: {len(self.transformations)} transformations.")
 
     def generate_transformations(self) -> List[Transformation]:
         """
@@ -193,7 +203,7 @@ class FeatureEngineeringPipeline:
         
         return self.transformed_dataset
 
-    def run(self) -> pd.DataFrame:
+    def run(self) -> Tuple[pd.DataFrame, List[Transformation]]:
         """
         Main entry point to run the complete feature engineering pipeline.
         
@@ -212,4 +222,4 @@ class FeatureEngineeringPipeline:
         else:
             logger.error("Pipeline failed to produce transformed dataset.")
 
-        return transformed_dataset
+        return transformed_dataset, self.transformations
