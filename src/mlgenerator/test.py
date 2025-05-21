@@ -1,12 +1,12 @@
-from automl import DatasetPrep
+from mlclassifier import MLClassifier
 
 
 # Étape 1 : Chargement initial du dataset
 dataset_name = "loan_approval_dataset"  # sans le .csv
 target_column = "loan_status"  # remplace par le nom réel de ta colonne cible
 
-# Étape 2 : Création de l'objet DatasetPrep
-prep = DatasetPrep(dataset=dataset_name, target_col=target_column)
+# Étape 2 : Création de l'objet MLClassifier
+prep = MLClassifier(dataset=dataset_name, target_col=target_column)
 
 # Étape 3 : Chargement du dataset
 df = prep.get_init_dataset()
@@ -15,7 +15,7 @@ df = prep.get_init_dataset()
 prep._dataset = df
 
 # Étape 5 : Nettoyage des données manquantes
-df_clean = DatasetPrep.get_missing_values_free_dataset(df)
+df_clean = MLClassifier.get_missing_values_free_dataset(df)
 prep._dataset = df_clean
 
 # Étape 6 : Suppression des doublons

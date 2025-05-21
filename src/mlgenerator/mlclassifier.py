@@ -13,7 +13,7 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 
 
-class DatasetPrep:
+class MLClassifier:
 
     def __init__(self, dataset, target_col):
         self._dataset = dataset
