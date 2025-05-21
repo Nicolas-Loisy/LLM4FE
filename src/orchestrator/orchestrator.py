@@ -36,13 +36,20 @@ class Orchestrator:
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(self.models_dir, exist_ok=True)
 
-    def run(self, dataset_path: str, dataset_description: Optional[str] = None, iterations: int = 1) -> Dict[str, Any]:
+    def run(
+        self, 
+        dataset_path: str, 
+        dataset_description: Optional[str] = None, 
+        target_column: Optional[str] = None,
+        iterations: int = 1
+    ) -> Dict[str, Any]:
         """
         Main entry point to run the feature engineering pipeline with multiple iterations.
 
         Args:
             dataset_path: Path to the input dataset
             dataset_description: Optional description of the dataset for feature engineering
+            target_column: Optional target column for supervised learning tasks
             iterations: Number of feature engineering iterations to run
 
         Returns:
@@ -59,10 +66,11 @@ class Orchestrator:
             self.current_version += 1
             logger.info(f"Starting iteration {i+1}/{iterations} (version {self.current_version})...")
             
-            # Initialiser le pipeline FE pour cette itération
+            # Initialiser le pipeline FE pour cette itération avec la colonne cible
             fe_pipeline = FeatureEngineeringPipeline(
                 dataset_path=current_dataset_path,
-                dataset_description=current_description
+                dataset_description=current_description,
+                target_column=target_column
             )
             
             # Exécuter une itération de feature engineering
@@ -99,7 +107,8 @@ class Orchestrator:
                     updated_description or current_description or "",
                     current_dataset_path,
                     output_path,
-                    transformed_dataset
+                    transformed_dataset,
+                    target_column
                 )
                 
                 # Ajouter le chemin de config à l'entrée d'historique
@@ -130,7 +139,8 @@ class Orchestrator:
             dataset_description: str, 
             input_path: str, 
             output_path: str, 
-            dataset: pd.DataFrame
+            dataset: pd.DataFrame,
+            target_column: Optional[str] = None
         ) -> str:
         """
         Save configuration information for a version.
@@ -142,6 +152,7 @@ class Orchestrator:
             input_path: Path to input dataset
             output_path: Path to output dataset
             dataset: The transformed dataset
+            target_column: Optional target column name
             
         Returns:
             Path to the saved configuration file
@@ -169,6 +180,7 @@ class Orchestrator:
                 "rows": dataset.shape[0],
                 "columns": dataset.shape[1]
             },
+            "target_column": target_column,
             "transformations": json_transformations,
             "columns": list(dataset.columns)
         }

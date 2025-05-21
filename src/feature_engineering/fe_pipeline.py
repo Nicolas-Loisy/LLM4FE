@@ -13,16 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 class FeatureEngineeringPipeline:
-    def __init__(self, dataset_path: str, dataset_description: Optional[str] = None):
+    def __init__(self, dataset_path: str, dataset_description: Optional[str] = None, target_column: Optional[str] = None):
         """
         Initialize Feature Engineering Pipeline.
         
         Args:
             dataset_path: Path to the input dataset (CSV file).
             dataset_description: Optional description of the dataset to guide transformations.
+            target_column: Optional target column for supervised learning tasks.
         """
         self.dataset_path: Path = Path(dataset_path)
         self.dataset_description: Optional[str] = dataset_description
+        self.target_column: Optional[str] = target_column
         self.transformations: List[Transformation] = []
         self.input_dataset: Optional[pd.DataFrame] = None
         self.transformed_dataset: Optional[pd.DataFrame] = None
@@ -79,12 +81,8 @@ class FeatureEngineeringPipeline:
         logger.info("Generating transformations...")
         
         dataset_info = self.get_dataset_info()
-
-        available_transforms = []
-        info_transforms = TransformationFactory.INFO_TRANSFORMATIONS
-        for provider, description in info_transforms.items():
-            available_transforms.append(f"- {provider}: {description}")
-        transforms_text = "Available transformations with descriptions:\n" + "\n".join(available_transforms)
+        transforms_text = self.get_available_transformations_info()
+        target_info = self.get_target_column_info()
         
         prompt = f"""
         You are a data scientist tasked with creating feature engineering transformations for a machine learning model.
@@ -92,7 +90,7 @@ class FeatureEngineeringPipeline:
         Here's information about the dataset:
         {dataset_info}
 
-        Dataset description: {self.dataset_description or 'No description provided'}
+        Dataset description: {self.dataset_description or 'No description provided'}{target_info}
 
         {transforms_text}
 
@@ -131,6 +129,36 @@ class FeatureEngineeringPipeline:
             logger.error(f"Error generating transformations: {e}")
             return [], None
 
+    def get_target_column_info(self) -> str:
+        """
+        Get information about the target column if specified.
+        
+        Returns:
+            String with target column information.
+        """
+        # Add target column information to the prompt if specified
+        if self.target_column:
+            target_info = f"\nTarget column for prediction: {self.target_column}"
+            
+            # Add more specific details about the target if available
+            if self.input_dataset is not None and self.target_column in self.input_dataset.columns:
+                target_data = self.input_dataset[self.target_column]
+                target_type = target_data.dtype
+                unique_values = target_data.nunique()
+                
+                target_info += f"\nTarget column type: {target_type}"
+                target_info += f"\nNumber of unique values: {unique_values}"
+                
+                # For categorical target, show value distribution
+                if unique_values <= 10:
+                    value_counts = target_data.value_counts(normalize=True)
+                    target_info += "\nClass distribution:"
+                    for val, count in value_counts.items():
+                        target_info += f"\n  - {val}: {count:.1%}"
+            return target_info
+        else:
+            return "No target column specified."
+
     def get_dataset_info(self) -> str:
         """
         Get informations about the dataset for the LLM prompt.
@@ -166,6 +194,23 @@ class FeatureEngineeringPipeline:
             dataset_info.append(stats)
         
         return "\n".join(dataset_info)
+
+    def get_available_transformations_info(self) -> str:
+        """
+        Get information about available transformations.
+        
+        Returns:
+            String with available transformations information.
+        """
+        logger.info("Getting available transformations information...")
+        available_transforms = []
+        info_transforms = TransformationFactory.INFO_TRANSFORMATIONS
+        
+        for provider, description in info_transforms.items():
+            available_transforms.append(f"- {provider}: {description}")
+        transforms_text = "Available transformations with descriptions:\n" + "\n".join(available_transforms)
+        
+        return transforms_text
 
     def apply_transformations(self) -> pd.DataFrame:
         """
