@@ -4,5 +4,10 @@
         "api_key": "${OPENWEBUI_API_KEY}",
         "api_url": "https://pleiade.mi.parisdescartes.fr",
         "model": "llama3.3:latest"
+    },
+    "_llm": {
+        "provider": "OpenAi",
+        "api_key": "${OPENAI_API_KEY}",
+        "model": "gpt-4o"
     }
 }

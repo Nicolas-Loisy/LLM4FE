@@ -1,5 +1,3 @@
-# Configuration manager for orchestrator
-
 import json
 import os
 import re

@@ -1,11 +1,14 @@
 """
 Text processing transformations for feature engineering.
 """
+import logging
 import pandas as pd
 from typing import List, Optional, Dict, Any
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
+
+logger = logging.getLogger(__name__)
 
 class TextProcessingTransform(BaseTransformation):
     """
@@ -66,22 +69,22 @@ class TextProcessingTransform(BaseTransformation):
         texts = df[col].fillna('').astype(str)
 
         if self.param["operation"] == 'length':
-            print("length")
+            logger.info("length")
             result_df[self.new_column_name] = texts.apply(len)
 
         elif self.param["operation"] == 'word_count':
-            print("word count")
+            logger.info("word count")
             result_df[self.new_column_name] = texts.apply(lambda x: len(x.split()))
         
         elif self.param["operation"] == 'keyword':
-            print("keyword detection")
+            logger.info("keyword detection")
             keyword = self.param.get("keyword")
             if not keyword:
                 raise ValueError("Missing 'keyword' in param for keyword detection.")
             result_df[self.new_column_name] = texts.apply(lambda x: int(keyword.lower() in x.lower()))
 
         elif self.param["operation"] == 'tfidf':
-            print("tfidf")
+            logger.info("tfidf")
 
             max_features = self.param.get("max_features", 10)
             vectorizer = TfidfVectorizer(max_features=max_features)
