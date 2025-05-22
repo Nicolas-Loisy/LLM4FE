@@ -52,10 +52,10 @@ class TransformationFactory:
         Returns:
             A transformation instance or None if the provider is not found
         """
-        provider = transformation_config["transformation_type"]
-        param = transformation_config.get("transformation_params", None)
-        new_column_name = transformation_config["new_column_name"]
-        source_columns = transformation_config["source_columns"]
+        provider = transformation_config.get("provider_transform", None)
+        param = transformation_config.get("params", None)
+        new_column_name = transformation_config.get("final_col", None)
+        source_columns = transformation_config.get("cols_to_process", [])
 
         if provider == "math_operations":
             return MathOperationsTransform(new_column_name, source_columns, param)

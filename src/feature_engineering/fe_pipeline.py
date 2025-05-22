@@ -117,7 +117,7 @@ class FeatureEngineeringPipeline:
             # Extract the transformations from the response
             if isinstance(response, DatasetStructure):
                 self.transformations = response.datasetStructure
-                self.dataset_description = response.dataset_description
+                self.dataset_description = response.datasetDescription
                 logger.info(f"Dataset description: {self.dataset_description}")
                 logger.info(f"Generated {len(self.transformations)} transformations.")
                 return self.transformations, self.dataset_description
@@ -234,7 +234,7 @@ class FeatureEngineeringPipeline:
         
         for transform_config in self.transformations:
             try:
-                transformation: BaseTransformation = TransformationFactory.create_transformation(transform_config)
+                transformation: BaseTransformation = TransformationFactory.create_transformation(transform_config.model_dump())
                 
                 if transformation:
                     self.transformed_dataset = transformation.transform(self.transformed_dataset)
