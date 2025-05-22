@@ -12,6 +12,24 @@ class EncodingTransform(BaseTransformation):
     """
     Applies encoding transformations to categorical columns.
     """
+
+    PROVIDER = "encoding"
+    DESCRIPTION = """
+    This transformation applies encoding methods to categorical columns.
+
+    Input:
+        - source_columns: List of categorical column names to encode (one or more).
+        
+    Output:
+        - new_column_name: The base name or prefix for the encoded output columns.
+        
+    Param:
+        - operation: The encoding type to apply. Supported operations are:
+            - 'onehot': One-hot encoding (creates multiple binary columns).
+            - 'label': Label encoding (assigns integer labels).
+            - 'ordinal': Ordinal encoding (maps categories to ordered integers).
+    """
+
     def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[str] = 'onehot'):
         """
         Initialize the encoding transformation.

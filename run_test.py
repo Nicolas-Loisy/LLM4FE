@@ -109,8 +109,13 @@ if __name__ == "__main__":
                 "operation": "period",
                 "freq": "Q"
             }
-        }
-
+        },
+        {
+            "new_column_name": "",
+            "source_columns": ["DateColumn1"],
+            "transformation_type": "delete",
+            "transformation_params": {}
+        },
     ]
     new_dataset_1 = fe_pipeline_1.run()
     print(new_dataset_1.head())
