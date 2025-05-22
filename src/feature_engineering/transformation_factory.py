@@ -6,7 +6,7 @@ from src.feature_engineering.transformations.encoding import EncodingTransform
 from src.feature_engineering.transformations.scaling import ScalingTransform
 from src.feature_engineering.transformations.text_processing import TextProcessingTransform
 from src.feature_engineering.transformations.categorical_operations import CategoricalOperationsTransform
-from src.feature_engineering.transformations.date_conversion import DateTimeProcessingTransform
+from src.feature_engineering.transformations.datetime_processing import DateTimeProcessingTransform
 from src.feature_engineering.transformations.delete_column import DeleteColumnTransform
 
 class TransformationFactory:
@@ -17,8 +17,8 @@ class TransformationFactory:
 
     PROVIDER_TRANSFORMATIONS: List[str] = [
         MathOperationsTransform.PROVIDER,
-        # EncodingTransform.PROVIDER,
-        # ScalingTransform.PROVIDER,
+        EncodingTransform.PROVIDER,
+        ScalingTransform.PROVIDER,
         TextProcessingTransform.PROVIDER,
         DeleteColumnTransform.PROVIDER,
         CategoricalOperationsTransform.PROVIDER,
@@ -29,14 +29,13 @@ class TransformationFactory:
     # Informations about available transformations for llm prompt
     INFO_TRANSFORMATIONS = {
         MathOperationsTransform.PROVIDER: MathOperationsTransform.DESCRIPTION,
-        # TODO : Add descriptions for other transformations
-        # EncodingTransform.PROVIDER: EncodingTransform.DESCRIPTION,
-        # ScalingTransform.PROVIDER: ScalingTransform.DESCRIPTION,
+        EncodingTransform.PROVIDER: EncodingTransform.DESCRIPTION,
+        ScalingTransform.PROVIDER: ScalingTransform.DESCRIPTION,
         TextProcessingTransform.PROVIDER: TextProcessingTransform.DESCRIPTION,
+        DeleteColumnTransform.PROVIDER: DeleteColumnTransform.DESCRIPTION,
         CategoricalOperationsTransform.PROVIDER: CategoricalOperationsTransform.DESCRIPTION,
         DateTimeProcessingTransform.PROVIDER: DateTimeProcessingTransform.DESCRIPTION,
         # TODO : Add descriptions for other transformations
-        DeleteColumnTransform.PROVIDER: DeleteColumnTransform.DESCRIPTION,
     }
 
 
@@ -75,7 +74,6 @@ class TransformationFactory:
         if provider == "categorical_operations":
             return CategoricalOperationsTransform(new_column_name, source_columns, param)
         
-
         if provider == "datetime_processing":
             return DateTimeProcessingTransform(new_column_name, source_columns, param)
         

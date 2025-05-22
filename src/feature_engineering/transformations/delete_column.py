@@ -16,7 +16,7 @@ class DeleteColumnTransform(BaseTransformation):
     This transformation deletes one specified column from the dataframe.
 
     Input:
-        - source_columns: List of one column name to delete.
+        - source_columns: The name of the column to delete.
         
     Output:
         - The dataframe without the specified column.

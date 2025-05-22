@@ -12,6 +12,24 @@ class ScalingTransform(BaseTransformation):
     """
     Applies scaling transformations to numeric columns.
     """
+
+    PROVIDER = "scaling"
+    DESCRIPTION = """
+    This transformation applies scaling methods to numeric columns.
+
+    Input:
+        - source_columns: List of numeric column names to scale (one or more).
+        
+    Output:
+        - new_column_name: The name of the output column after scaling.
+        
+    Param:
+        - operation: The scaling method to apply. Supported operations are:
+            - 'standard': StandardScaler (mean=0, std=1)
+            - 'minmax': MinMaxScaler (scales to [0, 1])
+            - 'robust': RobustScaler (uses median and IQR)
+    """
+    
     def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[str] = 'standard'):
         """
         Initialize the scaling transformation.
