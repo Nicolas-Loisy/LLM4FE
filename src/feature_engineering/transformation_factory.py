@@ -7,6 +7,7 @@ from src.feature_engineering.transformations.scaling import ScalingTransform
 from src.feature_engineering.transformations.text_processing import TextProcessingTransform
 from src.feature_engineering.transformations.categorical_operations import CategoricalOperationsTransform
 from src.feature_engineering.transformations.date_conversion import DateTimeProcessingTransform
+from src.feature_engineering.transformations.delete_column import DeleteColumnTransform
 
 class TransformationFactory:
     """
@@ -19,6 +20,7 @@ class TransformationFactory:
         # EncodingTransform.PROVIDER,
         # ScalingTransform.PROVIDER,
         TextProcessingTransform.PROVIDER,
+        DeleteColumnTransform.PROVIDER,
         CategoricalOperationsTransform.PROVIDER,
         DateTimeProcessingTransform.PROVIDER,
         # TODO : Add other transformation providers here
@@ -34,6 +36,7 @@ class TransformationFactory:
         CategoricalOperationsTransform.PROVIDER: CategoricalOperationsTransform.DESCRIPTION,
         DateTimeProcessingTransform.PROVIDER: DateTimeProcessingTransform.DESCRIPTION,
         # TODO : Add descriptions for other transformations
+        DeleteColumnTransform.PROVIDER: DeleteColumnTransform.DESCRIPTION,
     }
 
 
@@ -75,6 +78,9 @@ class TransformationFactory:
 
         if provider == "datetime_processing":
             return DateTimeProcessingTransform(new_column_name, source_columns, param)
+        
+        if provider == "delete_column":
+            return DeleteColumnTransform(new_column_name, source_columns, param)
 
         # Add more transformations as needed
         raise ValueError(f"Transformation provider '{provider}' not found.")
