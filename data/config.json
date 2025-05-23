@@ -9,5 +9,6 @@
         "provider": "OpenAi",
         "api_key": "${OPENAI_API_KEY}",
         "model": "gpt-4o"
-    }
+    },
+    "prompt_file": "data/prompt_template.txt"
 }

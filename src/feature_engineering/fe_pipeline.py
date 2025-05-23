@@ -83,27 +83,21 @@ class FeatureEngineeringPipeline:
         dataset_info = self.get_dataset_info()
         transforms_text = self.get_available_transformations_info()
         target_info = self.get_target_column_info()
+
+        prompt = self.config.get_with_params("prompt_file", {
+            "dataset_info": dataset_info,
+            "dataset_description": self.dataset_description or 'No description provided',
+            "target_info": target_info,
+            "transforms_text": transforms_text
+        })
         
-        prompt = f"""
-        You are a data scientist tasked with creating feature engineering transformations for a machine learning model.
-                
-        Here's information about the dataset:
-        {dataset_info}
-
-        Dataset description: {self.dataset_description or 'No description provided'}{target_info}
-
-        {transforms_text}
-
-        Generate a list of feature engineering transformations that would improve model performance.
-        For each transformation, specify:
-        1. The new column name (new_column_name)
-        2. The source columns (source_columns)
-        3. The category: 'math', 'aggregation', 'encoding', 'scaling', 'text', or 'custom'
-        4. Any transformation parameters (transformation_params)
-
-        Return the transformations in a structured JSON format.
-        """
-
+        if not prompt:
+            logger.error("Failed to load prompt template")
+            return [], None
+            
+        logger.debug("Loaded prompt template successfully")
+        logger.info(f"Prompt: {prompt}")
+        
         try:
             # Use the LLM with format support
             logger.info("Generating transformations with LLM...")
