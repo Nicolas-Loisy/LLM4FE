@@ -27,8 +27,6 @@ This project aims to develop an automated pipeline for Feature Engineering (FE),
 │   │   ├── 📂 transformations/  # Specific transformations
 │   │   │   ├── __init__.py
 │   │   │   ├── base_transform.py  # Parent class for all transformations
-│   │   │   ├── scaling.py  # Scaling transformations
-│   │   │   ├── encoding.py  # Categorical variable encoding
 │   │   │   ├── text_processing.py  # Text processing (TF-IDF, embeddings, etc.)
 │   │   │   ├── math_operations.py  # Math functions (log, mean, etc.)
 │
