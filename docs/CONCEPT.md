@@ -34,8 +34,6 @@ Le projet suit une structure modulaire et organisée :
 │   │   ├── 📂 transformations/  # Dossier contenant les transformations spécifiques
 │   │   │   ├── __init__.py
 │   │   │   ├── base_transform.py  # Classe parent pour toutes les transformations
-│   │   │   ├── scaling.py  # Transformations de mise à l'échelle
-│   │   │   ├── encoding.py  # Encodage des variables catégorielles
 │   │   │   ├── text_processing.py  # Traitement du texte (TF-IDF, embeddings, etc.)
 │   │   │   ├── math_operations.py  # Fonctions mathématiques (log, moyenne, etc.)
 │
@@ -100,7 +98,7 @@ from typing import List, Optional, Literal
 class Transformation(BaseModel):
     finalCol: str
     colToProcess: List[str]
-    providerTransform: Literal['math', 'aggregation', 'encoding', 'scaling', 'custom']
+    providerTransform: Literal['math', 'aggregation', 'custom']
     param: Optional[str]
 
 class DatasetStructure(BaseModel):
