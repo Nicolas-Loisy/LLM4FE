@@ -7,6 +7,7 @@ import pandas as pd
 from pathlib import Path
 
 from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
+from src.data_cleanning.data_cleaner import DataCleaner
 # from src.automl.automl_pipeline import AutoMLPipeline
 from src.utils.config import get_config
 
@@ -77,6 +78,24 @@ class Orchestrator:
             transformed_dataset, new_transformations, updated_description = fe_pipeline.run()
             
             if transformed_dataset is not None:
+                # Sauvegarder le dataset après feature engineering
+                fe_output_path = os.path.join(self.output_dir, f"dataset_v{self.current_version}_fe.csv")
+                transformed_dataset.to_csv(fe_output_path, index=False)
+                
+                # Appliquer le nettoyage des données après feature engineering
+                logger.info("Applying data cleaning after feature engineering...")
+                data_cleaner = DataCleaner()
+                cleaned_output_path = os.path.join(self.output_dir, f"dataset_v{self.current_version}.csv")
+                final_output_path = data_cleaner.run(
+                    input_path=fe_output_path,
+                    output_path=cleaned_output_path,
+                    threshold=0.8,
+                    target_column=target_column
+                )
+                
+                # Charger le dataset final nettoyé
+                final_dataset = pd.read_csv(final_output_path)
+                
                 # Mise à jour de la description si nécessaire
                 if updated_description:
                     current_description = updated_description
@@ -84,15 +103,12 @@ class Orchestrator:
                 # Garder une trace de toutes les transformations
                 all_transformations.extend(new_transformations)
                 
-                # Sauvegarder le dataset pour cette itération
-                output_path = os.path.join(self.output_dir, f"dataset_v{self.current_version}.csv")
-                transformed_dataset.to_csv(output_path, index=False)
-                
                 # Créer l'entrée d'historique pour cette itération
                 version_entry = {
                     "version": self.current_version,
                     "input_path": current_dataset_path,
-                    "output_path": output_path,
+                    "fe_output_path": fe_output_path,
+                    "output_path": final_output_path,
                     "new_transformations_count": len(new_transformations),
                     "total_transformations_count": len(all_transformations),
                     "description": updated_description,
@@ -106,8 +122,8 @@ class Orchestrator:
                     all_transformations,
                     updated_description or current_description or "",
                     current_dataset_path,
-                    output_path,
-                    transformed_dataset,
+                    final_output_path,
+                    final_dataset,
                     target_column
                 )
                 
@@ -115,7 +131,7 @@ class Orchestrator:
                 self.version_history[-1]["config_path"] = config_path
                 
                 # Mettre à jour pour la prochaine itération
-                current_dataset_path = output_path
+                current_dataset_path = final_output_path
                 
                 logger.info(f"Iteration {i+1} completed successfully")
             else:
