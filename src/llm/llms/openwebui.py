@@ -1,3 +1,4 @@
+import logging
 import requests
 import json
 from typing import Dict, Any, Optional, Type
@@ -5,6 +6,7 @@ from pydantic import BaseModel
 
 from src.llm.llms.base_llm import BaseLLM
 
+logger = logging.getLogger(__name__)
 
 class OpenWebUILLM(BaseLLM):
     """
@@ -50,7 +52,7 @@ class OpenWebUILLM(BaseLLM):
                 return response_format.model_validate_json(response_json.get("choices", [{}])[0].get("message", {}).get("content", {}))
             return response_json.get("choices", [{}])[0].get("message", {}).get("content", "")
         except requests.exceptions.RequestException as e:
-            print(f"Erreur : {e}")
+            logger.error(f"Erreur : {e}")
             return None
     
     def generate_with_format(self, prompt: str, response_format: Optional[Dict[str, Any]] = None, **kwargs) -> Any:
