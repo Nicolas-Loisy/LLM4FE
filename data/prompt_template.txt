@@ -19,3 +19,4 @@ Description of Dataset Columns: {dataset_description}
 Model Objective (target): {target_info}
 Available Transformations: {transforms_text}
 Ensure you only propose transformations based on the provided information and available transformations.
+Do not modify or apply any transformations that include the target column.
