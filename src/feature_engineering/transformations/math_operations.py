@@ -1,26 +1,55 @@
-"""
-Mathematical operations for feature engineering.
-"""
 import pandas as pd
 import numpy as np
-from typing import List, Optional
-from src.feature_engineering.transformations.base_transform import BaseTransform
+import logging
+from typing import Dict, Any, Optional, List
 
+from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
-class MathOperationsTransform(BaseTransform):
+logger = logging.getLogger(__name__)
+
+class MathOperationsTransform(BaseTransformation):
     """
     Applies mathematical operations to numeric columns.
     """
-    def __init__(self, final_col: str, cols_to_process: List[str], param: Optional[str] = 'log'):
+
+    PROVIDER="math_operations"
+    DESCRIPTION = """
+    This transformation applies mathematical operations to numeric columns.
+
+    Input:
+        - source_columns: List of column names to process. Can be one or more columns.
+        
+    Output:
+        - new_column_name: The name of the output column after applying the transformation.
+        
+    Param:
+        - operation: The type of mathematical operation to apply. Supported operations are:
+            - 'log': Logarithm (handles zeros and negative values by applying log1p).
+            - 'sqrt': Square root (handles negative values by clipping to zero).
+            - 'square': Square of the column values.
+            - 'mean': Mean of the specified columns.
+            - 'sum': Sum of the specified columns.
+            - 'diff': Difference between two specified columns.
+            - 'ratio': Ratio between two specified columns (handles division by zero).
+    """
+
+    def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
         """
         Initialize the math operations transformation.
         
         Args:
-            final_col: The name of the output column after transformation
-            cols_to_process: List of column names to process
-            param: Type of math operation to apply ('log', 'sqrt', 'square', 'mean', 'sum', 'diff', 'ratio')
+            new_column_name: The name of the output column after transformation
+            source_columns: List of column names to process
+            param: Dictionary containing the operation type ('log', 'sqrt', 'square', 'mean', 'sum', 'diff', 'ratio')
         """
-        super().__init__(final_col, cols_to_process, param)
+        super().__init__(new_column_name, source_columns, param)
+        
+        # Validate param structure
+        if not isinstance(param, dict) or "operation" not in param:
+            raise ValueError("Invalid param structure. Expected a dictionary with an 'operation' key.")
+        
+        if param["operation"] not in ["multiply", "addition", "log", "sqrt", "square", "mean", "sum", "diff", "ratio"]:
+            raise ValueError(f"Unsupported operation: {param['operation']}")
     
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -35,46 +64,51 @@ class MathOperationsTransform(BaseTransform):
         result_df = df.copy()
         
         # Single column operations
-        if len(self.cols_to_process) == 1 and self.cols_to_process[0] in df.columns:
-            col = self.cols_to_process[0]
+        if len(self.source_columns) == 1 :
+            col = self.source_columns[0]
+            if self.param["operation"] == 'log':
+                logger.info("log")
+                # Apply log1p to handle zeros and negative values
+                result_df[self.new_column_name] = np.log1p(df[col])
             
-            if self.param == 'log':
-                # Apply log transformation (handle zeros and negative values)
-                result_df[self.final_col] = np.log1p(df[col].clip(lower=0))
+            elif self.param["operation"] == 'sqrt':
+                logger.info("sqrt")
+                # Apply square root, clipping negative values to zero
+                result_df[self.new_column_name] = np.sqrt(df[col].clip(lower=0))
             
-            elif self.param == 'sqrt':
-                # Apply square root (handle negative values)
-                result_df[self.final_col] = np.sqrt(df[col].clip(lower=0))
-            
-            elif self.param == 'square':
-                # Apply square
-                result_df[self.final_col] = df[col] ** 2
+            elif self.param["operation"] == 'square':
+                logger.info("square")
+                # Square the column values
+                result_df[self.new_column_name] = df[col] ** 2
         
         # Multi-column operations
-        elif len(self.cols_to_process) > 1:
-            valid_cols = [col for col in self.cols_to_process if col in df.columns]
+        elif len(self.source_columns) > 1:
+            valid_cols = [col for col in self.source_columns if col in df.columns]
             
             if len(valid_cols) > 0:
-                if self.param == 'mean':
-                    # Calculate mean of columns
-                    result_df[self.final_col] = df[valid_cols].mean(axis=1)
-                
-                elif self.param == 'sum':
-                    # Calculate sum of columns
-                    result_df[self.final_col] = df[valid_cols].sum(axis=1)
-            
-            if len(valid_cols) == 2:
-                col1, col2 = valid_cols
-                
-                if self.param == 'diff':
+                if self.param["operation"] == 'diff':
+                    logger.info("diff")
                     # Calculate difference between two columns
-                    result_df[self.final_col] = df[col1] - df[col2]
+                    result_df[self.new_column_name] = df[valid_cols[0]] - df[valid_cols[1]]
                 
-                elif self.param == 'ratio':
-                    # Calculate ratio between two columns (handle division by zero)
-                    denominator = df[col2].replace(0, np.nan)
-                    result_df[self.final_col] = df[col1] / denominator
-                    # Fill NaN values with 0 or another appropriate value
-                    result_df[self.final_col] = result_df[self.final_col].fillna(0)
+                elif self.param["operation"] == 'ratio':
+                    logger.info("ratio")
+                    # Calculate ratio between two columns, handling division by zero
+                    result_df[self.new_column_name] = df[valid_cols[0]] / df[valid_cols[1]].replace(0, np.nan)
+                
+                elif self.param["operation"] == 'mean':
+                    logger.info("mean")
+                    # Calculate mean of columns
+                    result_df[self.new_column_name] = df[self.source_columns].mean(axis=1)
         
+
+                if self.param["operation"] == 'multiply':
+                    logger.info("multiply")        
+                    # Multiply two columns
+                    result_df[self.new_column_name] = df[self.source_columns].prod(axis=1)
+                
+                elif self.param["operation"] == 'addition':
+                    logger.info("Adding columns")
+                    # Calculate sum of columns
+                    result_df[self.new_column_name] = df[self.source_columns].sum(axis=1)
         return result_df
