@@ -1,10 +1,14 @@
 import numpy as np
 import pandas as pd
+import logging
 from typing import Dict, Any, Optional, List
 from sklearn.calibration import LabelEncoder    
 from sklearn.preprocessing import OneHotEncoder
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
+
+logger = logging.getLogger(__name__)
+
 class CategoricalOperationsTransform(BaseTransformation):
     """
     Applies categorical operations to columns.
@@ -26,6 +30,13 @@ class CategoricalOperationsTransform(BaseTransformation):
     """
 
     def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the categorical operations transformation.
+        Args:
+            new_column_name: The name of the output column after transformation
+            source_columns: List of column names to process
+            param: Dictionary containing the operation type ('encodage_oneHot', 'label_encoding', 'target_encoding')
+        """
         super().__init__(new_column_name, source_columns, param)
 
         # Validate param structure
@@ -36,6 +47,9 @@ class CategoricalOperationsTransform(BaseTransformation):
             raise ValueError(f"Unsupported operation: {param['operation']}")
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply the categorical operation to the DataFrame.
+        """
         result_df = df.copy()
 
         if self.param["operation"] == 'encodage_oneHot':
@@ -47,9 +61,13 @@ class CategoricalOperationsTransform(BaseTransformation):
                     encoded_df = pd.DataFrame(encoded_array, columns=new_columns, index=df.index)
                     result_df = pd.concat([result_df, encoded_df], axis=1)
                 except Exception as e:
+                    logging.error(f"Error during one-hot encoding for column '{col}': {str(e)}")
                     # En cas d'erreur, remplir les colonnes avec des NaN
-                    for val in df[col].unique():
-                        result_df[f"{col}_{val}"] = np.nan
+                    try:
+                        for val in df[col].unique():
+                            result_df[f"{col}_{val}"] = np.nan
+                    except Exception as inner_e:
+                        logging.error(f"Error creating fallback columns for '{col}': {str(inner_e)}")
 
         elif self.param["operation"] == 'label_encoding':
             for col in self.source_columns:
@@ -59,20 +77,22 @@ class CategoricalOperationsTransform(BaseTransformation):
                     not_null_mask = df[col].notnull()
                     result_df[self.new_column_name] = np.nan
                     result_df.loc[not_null_mask, self.new_column_name] = encoder.fit_transform(df.loc[not_null_mask, col])
-                except Exception:
+                except Exception as e:
+                    logging.error(f"Error during label encoding for column '{col}': {str(e)}")
                     result_df[self.new_column_name] = np.nan
 
         elif self.param["operation"] == 'target_encoding':
             target_column = df.columns[-1] # On suppose que la derniere colonne est la colonne target
             for col in self.source_columns:
-                result_df[self.new_column_name] = df.apply(
-                    lambda row: df.groupby(col)[target_column].mean().get(row[col], np.nan)
-                    if pd.notnull(row[col]) and pd.notnull(row[target_column])
-                    else np.nan,
-                    axis=1
-                )
+                try:
+                    result_df[self.new_column_name] = df.apply(
+                        lambda row: df.groupby(col)[target_column].mean().get(row[col], np.nan)
+                        if pd.notnull(row[col]) and pd.notnull(row[target_column])
+                        else np.nan,
+                        axis=1
+                    )
+                except Exception as e:
+                    logging.error(f"Error during target encoding for column '{col}': {str(e)}")
+                    result_df[self.new_column_name] = np.nan
 
         return result_df
-
-      
-

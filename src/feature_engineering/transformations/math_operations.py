@@ -58,18 +58,18 @@ class MathOperationsTransform(BaseTransformation):
             if len(self.source_columns) == 1 :
                 col = self.source_columns[0]
                 if self.param["operation"] == 'log1p':
-                    logger.debug(f"Applying log1p transformation to column '{col}'")
                     # Apply log1p to handle zeros and negative values
+                    logger.debug(f"Applying log1p transformation to column '{col}'")
                     result_df[self.new_column_name] = np.log1p(df[col])
                 
                 elif self.param["operation"] == 'sqrt':
-                    logger.debug(f"Applying sqrt transformation to column '{col}'")
                     # Apply square root, clipping negative values to zero
+                    logger.debug(f"Applying sqrt transformation to column '{col}'")
                     result_df[self.new_column_name] = np.sqrt(df[col].clip(lower=0))
                 
                 elif self.param["operation"] == 'square':
-                    logger.debug(f"Applying square transformation to column '{col}'")
                     # Square the column values
+                    logger.debug(f"Applying square transformation to column '{col}'")
                     result_df[self.new_column_name] = df[col] ** 2
             
             # Multi-column operations
@@ -78,33 +78,32 @@ class MathOperationsTransform(BaseTransformation):
                 
                 if len(valid_cols) > 0:
                     if self.param["operation"] == 'diff':
-                        logger.debug(f"Calculating difference between columns {valid_cols[0]} and {valid_cols[1]}")
                         # Calculate difference between two columns
+                        logger.debug(f"Calculating difference between columns {valid_cols[0]} and {valid_cols[1]}")
                         result_df[self.new_column_name] = df[valid_cols[0]] - df[valid_cols[1]]
                     
                     elif self.param["operation"] == 'ratio':
-                        logger.debug(f"Calculating ratio between columns {valid_cols[0]} and {valid_cols[1]}")
                         # Calculate ratio between two columns, handling division by zero
+                        logger.debug(f"Calculating ratio between columns {valid_cols[0]} and {valid_cols[1]}")
                         result_df[self.new_column_name] = df[valid_cols[0]] / df[valid_cols[1]].replace(0, np.nan)
                     
                     elif self.param["operation"] == 'mean':
-                        logger.debug(f"Calculating mean across columns: {self.source_columns}")
                         # Calculate mean of columns
+                        logger.debug(f"Calculating mean across columns: {self.source_columns}")
                         result_df[self.new_column_name] = df[self.source_columns].mean(axis=1)
-            
 
                     if self.param["operation"] == 'multiply':
-                        logger.debug(f"Multiplying columns: {self.source_columns}")        
                         # Multiply two columns
+                        logger.debug(f"Multiplying columns: {self.source_columns}")        
                         result_df[self.new_column_name] = df[self.source_columns].prod(axis=1)
                     
                     elif self.param["operation"] == 'addition':
-                        logger.debug(f"Adding columns: {self.source_columns}")
                         # Calculate sum of columns
+                        logger.debug(f"Adding columns: {self.source_columns}")
                         result_df[self.new_column_name] = df[self.source_columns].sum(axis=1)
         except Exception as e:
-            logger.error(f"Error during math operations transformation: {e}")
             # If an unexpected error occurs, fill the entire column with NaN
+            logger.error(f"Error during math operations transformation: {e}")
             result_df[self.new_column_name] = np.nan
 
         return result_df
