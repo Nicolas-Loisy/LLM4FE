@@ -16,7 +16,7 @@ class Orchestrator:
         """Initialize the orchestrator."""
         logger.info("Initializing Orchestrator...")
         self.config = get_config(config_path)
-        self.version_manager = VersionManager()
+        self.version_manager = VersionManager() # Définir le dossier de save des versions
         self.data_cleaner = DataCleaner()
         self.best_score = -float('inf')
         self.best_dataset_path = None
