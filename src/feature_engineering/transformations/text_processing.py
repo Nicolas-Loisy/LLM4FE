@@ -59,42 +59,48 @@ class TextProcessingTransform(BaseTransformation):
         """
         result_df = df.copy()
         
-        if len(self.source_columns) != 1:
-            raise ValueError("TextProcessingTransform supports only one source column.")
+        try :
+            if len(self.source_columns) != 1:
+                raise ValueError("TextProcessingTransform supports only one source column.")
 
-        col = self.source_columns[0]
-        if col not in df.columns:
-            raise ValueError(f"Column '{col}' not found in dataframe.")
+            col = self.source_columns[0]
+            if col not in df.columns:
+                raise ValueError(f"Column '{col}' not found in dataframe.")
 
-        texts = df[col].fillna('').astype(str)
+            texts = df[col].fillna('').astype(str)
+            operation = self.param["operation"]
 
-        if self.param["operation"] == 'length':
-            logger.info("length")
-            result_df[self.new_column_name] = texts.apply(len)
+            if operation == 'length':
+                logger.info("Applying text length operation")
+                result_df[self.new_column_name] = texts.apply(len)
 
-        elif self.param["operation"] == 'word_count':
-            logger.info("word count")
-            result_df[self.new_column_name] = texts.apply(lambda x: len(x.split()))
+            elif operation == 'word_count':
+                logger.info("Applying word count operation")
+                result_df[self.new_column_name] = texts.apply(lambda x: len(x.split()))
+            
+            elif operation == 'keyword':
+                logger.info("Applying keyword detection operation")
+                keyword = self.param.get("keyword")
+                if not keyword:
+                    raise ValueError("Missing 'keyword' in param for keyword detection.")
+                result_df[self.new_column_name] = texts.apply(lambda x: int(keyword.lower() in x.lower()))
+
+            elif operation == 'tfidf':
+                logger.info("Applying TF-IDF operation")
+
+                max_features = self.param.get("max_features", 10)
+                vectorizer = TfidfVectorizer(max_features=max_features)
+                tfidf_matrix = vectorizer.fit_transform(texts)
+                tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=[
+                    f"{self.new_column_name}_{feat}" for feat in vectorizer.get_feature_names_out()
+                ])
+                result_df = pd.concat([result_df.reset_index(drop=True), tfidf_df.reset_index(drop=True)], axis=1)
+
+            else:
+                raise ValueError(f"Unsupported operation: {self.param['operation']}")
+            
+        except Exception as e:
+            logger.exception(f"[{self.PROVIDER}] Error during text processing transformation: {e}")
+            raise
         
-        elif self.param["operation"] == 'keyword':
-            logger.info("keyword detection")
-            keyword = self.param.get("keyword")
-            if not keyword:
-                raise ValueError("Missing 'keyword' in param for keyword detection.")
-            result_df[self.new_column_name] = texts.apply(lambda x: int(keyword.lower() in x.lower()))
-
-        elif self.param["operation"] == 'tfidf':
-            logger.info("tfidf")
-
-            max_features = self.param.get("max_features", 10)
-            vectorizer = TfidfVectorizer(max_features=max_features)
-            tfidf_matrix = vectorizer.fit_transform(texts)
-            tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=[
-                f"{self.new_column_name}_{feat}" for feat in vectorizer.get_feature_names_out()
-            ])
-            result_df = pd.concat([result_df.reset_index(drop=True), tfidf_df.reset_index(drop=True)], axis=1)
-
-        else:
-            raise ValueError(f"Unsupported operation: {self.param['operation']}")
-
         return result_df

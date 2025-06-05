@@ -1,10 +1,13 @@
 """
 Delete a specified column from a dataframe.
 """
+import logging
 import pandas as pd
 from typing import List, Optional, Dict, Any
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
+
+logger = logging.getLogger(__name__)
 
 class DeleteColumnTransform(BaseTransformation):
     """
@@ -49,12 +52,17 @@ class DeleteColumnTransform(BaseTransformation):
         Returns:
             Dataframe without the specified column.
         """
-        col_to_delete = self.source_columns[0]
+        try : 
+            col_to_delete = self.source_columns[0]
 
-        if col_to_delete not in df.columns:
-            raise ValueError(f"Column '{col_to_delete}' not found in dataframe.")
+            if col_to_delete not in df.columns:
+                raise ValueError(f"Column '{col_to_delete}' not found in dataframe.")
 
-        result_df = df.copy()
-        result_df.drop(columns=[col_to_delete], inplace=True)
+            result_df = df.copy()
+            result_df.drop(columns=[col_to_delete], inplace=True)
 
-        return result_df
+            return result_df
+        
+        except Exception as e:
+            logger.exception(f"[{self.PROVIDER}] Error during column deletion: {e}")
+            raise

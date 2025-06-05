@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+import logging
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
@@ -61,47 +62,71 @@ class DateTimeProcessingTransform(BaseTransformation):
         """
         result_df = df.copy()
 
-        for col in self.source_columns:
-            if col not in df.columns:
-                raise ValueError(f"Column '{col}' not found in dataframe.")
-            if not pd.api.types.is_datetime64_any_dtype(result_df[col]):
-                logger.info(f"Converting '{col}' to datetime")
-                result_df[col] = pd.to_datetime(result_df[col], errors="coerce")
+        try :
+            for col in self.source_columns:
+                if col not in df.columns:
+                    raise ValueError(f"Column '{col}' not found in dataframe.")
+                if not pd.api.types.is_datetime64_any_dtype(result_df[col]):
+                    logger.info(f"Converting '{col}' to datetime")
+                    result_df[col] = pd.to_datetime(result_df[col], errors="coerce")
 
 
-        col = self.source_columns[0]
+            col = self.source_columns[0]
+            
+            operation = self.param["operation"]
+            if not operation:
+                logger.error("Missing 'operation' in parameters.")
+                return result_df
+            
+            if operation == 'year':
+                logger.info("Extracting year")
+                result_df[self.new_column_name] = result_df[col].dt.year
+
+            elif operation == 'month':
+                logger.info("Extracting month")
+                result_df[self.new_column_name] = result_df[col].dt.month
+            
+            elif operation == 'day':
+                logger.info("Extracting day")
+                result_df[self.new_column_name] = result_df[col].dt.day
+
+            elif operation == 'weekday':
+                logger.info("Extracting weekday")
+                result_df[self.new_column_name] = result_df[col].dt.weekday
+
+            elif operation == 'days_diff':
+                logger.info("Calculating date difference in days")
+                if len(self.source_columns) < 2:
+                    logger.warning("Need two columns for 'days_diff'. Skipping.")
+                    return result_df
+                second_col = self.source_columns[1]
+                if second_col not in result_df.columns:
+                    logger.warning(f"Second column '{second_col}' not found. Skipping.")
+                    return result_df
+
+                if not pd.api.types.is_datetime64_any_dtype(result_df[second_col]):
+                    logger.info(f"Converting '{second_col}' to datetime")
+                    result_df[second_col] = pd.to_datetime(result_df[second_col], errors="coerce")
+
+                if result_df[second_col].isna().all():
+                    logger.warning(f"All values in '{second_col}' could not be converted to datetime. Skipping.")
+                    return result_df
                 
-        if self.param["operation"] == 'year':
-            logger.info("Extracting year")
-            result_df[self.new_column_name] = result_df[col].dt.year
+                result_df[self.new_column_name] = (result_df[second_col] - result_df[col]).dt.days
 
-        elif self.param["operation"] == 'month':
-            logger.info("Extracting month")
-            result_df[self.new_column_name] = result_df[col].dt.month
-        
-        elif self.param["operation"] == 'day':
-            logger.info("Extracting day")
-            result_df[self.new_column_name] = result_df[col].dt.day
+            elif operation == 'period':
+                logger.info("Grouping by standard time period")
+                freq = self.param.get("freq")
+                if not freq:
+                    logger.warning("Missing 'freq' for 'period'. Skipping.")
+                    return result_df
+                logger.info("Grouping into periods")
+                result_df[self.new_column_name] = result_df[col].dt.to_period(freq).astype(str)
 
-        elif self.param["operation"] == 'weekday':
-            logger.info("Extracting weekday")
-            result_df[self.new_column_name] = result_df[col].dt.weekday
+            else:
+                logger.warning(f"Unsupported operation: '{operation}'. Skipping.")
 
-        elif self.param["operation"] == 'days_diff':
-            logger.info("Calculating date difference in days")
-            if len(self.source_columns) < 2:
-                raise ValueError("Two date columns are required for 'days_diff' operation.")
-            second_col = self.source_columns[1]
-            result_df[self.new_column_name] = (result_df[second_col] - result_df[col]).dt.days
-
-        elif self.param["operation"] == 'period':
-            logger.info("Grouping by standard time period")
-            freq = self.param.get("freq")
-            if not freq:
-                raise ValueError("Missing 'freq' in param for period grouping.")
-            result_df[self.new_column_name] = result_df[col].dt.to_period(freq).astype(str)
-
-        else:
-            raise ValueError(f"Unsupported operation: {self.param['operation']}")
+        except Exception as e:
+            logger.exception(f"[{self.PROVIDER}] Unexpected error during transformation: {e}")
 
         return result_df
