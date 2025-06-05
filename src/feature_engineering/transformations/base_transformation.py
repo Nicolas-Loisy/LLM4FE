@@ -1,26 +1,22 @@
-"""
-Base transformation class that all transformations will inherit from.
-"""
 import pandas as pd
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
+from typing import Dict, Any, Optional, List
 
-
-class BaseTransform(ABC):
+class BaseTransformation(ABC):
     """
     Abstract base class for all transformations.
     """
-    def __init__(self, final_col: str, cols_to_process: List[str], param: Optional[str] = None):
+    def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
         """
         Initialize the transformation.
         
         Args:
-            final_col: The name of the output column after transformation
-            cols_to_process: List of column names to process
+            new_column_name: Name of the column to store the result of the transformation
+            source_columns: List of columns to process
             param: Optional parameter for the transformation
         """
-        self.final_col = final_col
-        self.cols_to_process = cols_to_process
+        self.new_column_name = new_column_name
+        self.source_columns = source_columns
         self.param = param
     
     @abstractmethod
@@ -38,4 +34,4 @@ class BaseTransform(ABC):
     
     def __str__(self) -> str:
         """String representation of the transformation."""
-        return f"{self.__class__.__name__}(final_col={self.final_col}, cols_to_process={self.cols_to_process}, param={self.param})"
+        return f"{self.__class__.__name__}(new_column_name={self.new_column_name}, source_columns={self.source_columns}, param={self.param})"

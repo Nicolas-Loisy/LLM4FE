@@ -2,6 +2,6 @@ from src.llm.llms.base_llm import BaseLLM
 from src.llm.llms.openai import OpenAI
 from src.llm.llms.openwebui import OpenWebUILLM
 from src.llm.llms.pleiade import Pleiade
+from src.llm.llm_factory import LLMFactory
 
-__all__ = ['BaseLLM', 'OpenAI', 'OpenWebUILLM', 'Pleiade']
-
+__all__ = ['BaseLLM', 'OpenAI', 'OpenWebUILLM', 'Pleiade', 'LLMFactory']

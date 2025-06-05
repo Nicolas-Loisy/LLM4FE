@@ -1,8 +1,11 @@
+import logging
 from typing import Dict, Any
 from openai import OpenAI as OpenAIClient
 from openai.types.responses import Response, ParsedResponse
 
 from src.llm.llms.base_llm import BaseLLM
+
+logger = logging.getLogger(__name__)
 
 class OpenAI(BaseLLM):
 
@@ -27,7 +30,7 @@ class OpenAI(BaseLLM):
             )
             return response.output_text
         except Exception as e:
-            print(f"Erreur d’appel OpenAI : {e}")
+            logger.error(f"Erreur d'appel OpenAI : {e}")
             return ""
 
     def generate_with_format(self, prompt: str, response_format, **kwargs) -> Dict[str, Any]:
@@ -41,7 +44,7 @@ class OpenAI(BaseLLM):
             return response.choices[0].message.parsed
 
         except Exception as e:
-            print(f"Erreur d’appel OpenAI : {e}")
+            logger.error(f"Erreur d'appel OpenAI : {e}")
             return None
 
     def get_model_info(self) -> Dict[str, Any]:

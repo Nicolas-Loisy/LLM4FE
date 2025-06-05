@@ -5,7 +5,6 @@ from sklearn.calibration import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
-
 class CategoricalOperationsTransform(BaseTransformation):
     """
     Applies categorical operations to columns.

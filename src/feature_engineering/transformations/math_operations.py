@@ -1,8 +1,11 @@
 import pandas as pd
 import numpy as np
+import logging
 from typing import Dict, Any, Optional, List
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
+
+logger = logging.getLogger(__name__)
 
 class MathOperationsTransform(BaseTransformation):
     """
@@ -21,7 +24,7 @@ class MathOperationsTransform(BaseTransformation):
         
     Param:
         - operation: The type of mathematical operation to apply. Supported operations are:
-            - 'log': Logarithm (handles zeros and negative values by applying log1p).
+            - 'log1p': Logarithm (handles zeros and negative values by applying log1p).
             - 'sqrt': Square root (handles negative values by clipping to zero).
             - 'square': Square of the column values.
             - 'mean': Mean of the specified columns.
@@ -31,71 +34,77 @@ class MathOperationsTransform(BaseTransformation):
     """
 
     def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the math operations transformation.
+        
+        Args:
+            new_column_name: The name of the output column after transformation
+            source_columns: List of column names to process
+            param: Dictionary containing the operation type ('log1p', 'sqrt', 'square', 'mean', 'sum', 'diff', 'ratio')
+        """
         super().__init__(new_column_name, source_columns, param)
-
+        
+        # Validate param structure
         if not isinstance(param, dict) or "operation" not in param:
             raise ValueError("Invalid param structure. Expected a dictionary with an 'operation' key.")
         
-        if param["operation"] not in ["multiply", "addition", "log", "sqrt", "square", "mean", "sum", "diff", "ratio"]:
+        if param["operation"] not in ["multiply", "addition", "log1p", "sqrt", "square", "mean", "sum", "diff", "ratio"]:
             raise ValueError(f"Unsupported operation: {param['operation']}")
-
+    
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         result_df = df.copy()
-
-        try : 
-
-            if len(self.source_columns) == 1:
+        try:
+            # Single column operations
+            if len(self.source_columns) == 1 :
                 col = self.source_columns[0]
-
-                if self.param["operation"] == 'log':
-                    result_df[self.new_column_name] = df[col].apply(
-                        lambda x: np.log1p(x) if pd.notnull(x) and x > -1 else np.nan
-                    )
-
+                if self.param["operation"] == 'log1p':
+                    logger.debug(f"Applying log1p transformation to column '{col}'")
+                    # Apply log1p to handle zeros and negative values
+                    result_df[self.new_column_name] = np.log1p(df[col])
+                
                 elif self.param["operation"] == 'sqrt':
-                    result_df[self.new_column_name] = df[col].apply(
-                        lambda x: np.sqrt(x) if pd.notnull(x) and x >= 0 else np.nan
-                    )
-
+                    logger.debug(f"Applying sqrt transformation to column '{col}'")
+                    # Apply square root, clipping negative values to zero
+                    result_df[self.new_column_name] = np.sqrt(df[col].clip(lower=0))
+                
                 elif self.param["operation"] == 'square':
-                    result_df[self.new_column_name] = df[col].apply(
-                        lambda x: x ** 2 if pd.notnull(x) else np.nan
-                    )
-
+                    logger.debug(f"Applying square transformation to column '{col}'")
+                    # Square the column values
+                    result_df[self.new_column_name] = df[col] ** 2
+            
+            # Multi-column operations
             elif len(self.source_columns) > 1:
-                cols = self.source_columns
-                if self.param["operation"] == 'diff' and len(cols) >= 2:
-                    result_df[self.new_column_name] = df.apply(
-                        lambda row: row[cols[0]] - row[cols[1]]
-                        if pd.notnull(row[cols[0]]) and pd.notnull(row[cols[1]])
-                        else np.nan, axis=1
-                    )
+                valid_cols = [col for col in self.source_columns if col in df.columns]
+                
+                if len(valid_cols) > 0:
+                    if self.param["operation"] == 'diff':
+                        logger.debug(f"Calculating difference between columns {valid_cols[0]} and {valid_cols[1]}")
+                        # Calculate difference between two columns
+                        result_df[self.new_column_name] = df[valid_cols[0]] - df[valid_cols[1]]
+                    
+                    elif self.param["operation"] == 'ratio':
+                        logger.debug(f"Calculating ratio between columns {valid_cols[0]} and {valid_cols[1]}")
+                        # Calculate ratio between two columns, handling division by zero
+                        result_df[self.new_column_name] = df[valid_cols[0]] / df[valid_cols[1]].replace(0, np.nan)
+                    
+                    elif self.param["operation"] == 'mean':
+                        logger.debug(f"Calculating mean across columns: {self.source_columns}")
+                        # Calculate mean of columns
+                        result_df[self.new_column_name] = df[self.source_columns].mean(axis=1)
+            
 
-                elif self.param["operation"] == 'ratio' and len(cols) >= 2:
-                    result_df[self.new_column_name] = df.apply(
-                        lambda row: row[cols[0]] / row[cols[1]]
-                        if pd.notnull(row[cols[0]]) and pd.notnull(row[cols[1]]) and row[cols[1]] != 0
-                        else np.nan, axis=1
-                    )
-
-                elif self.param["operation"] == 'mean':
-                    result_df[self.new_column_name] = df[cols].apply(
-                        lambda row: row.mean() if row.notnull().all() else np.nan, axis=1
-                    )
-
-                elif self.param["operation"] in ['sum', 'addition']:
-                    result_df[self.new_column_name] = df[cols].apply(
-                        lambda row: row.sum() if row.notnull().all() else np.nan, axis=1
-                    )
-
-                elif self.param["operation"] == 'multiply':
-                    result_df[self.new_column_name] = df[cols].apply(
-                        lambda row: row.prod() if row.notnull().all() else np.nan, axis=1
-                    )
-
-        except Exception:
-            # Si une erreur inattendue survient, on remplit toute la colonne avec NaN
+                    if self.param["operation"] == 'multiply':
+                        logger.debug(f"Multiplying columns: {self.source_columns}")        
+                        # Multiply two columns
+                        result_df[self.new_column_name] = df[self.source_columns].prod(axis=1)
+                    
+                    elif self.param["operation"] == 'addition':
+                        logger.debug(f"Adding columns: {self.source_columns}")
+                        # Calculate sum of columns
+                        result_df[self.new_column_name] = df[self.source_columns].sum(axis=1)
+        except Exception as e:
+            logger.error(f"Error during math operations transformation: {e}")
+            # If an unexpected error occurs, fill the entire column with NaN
             result_df[self.new_column_name] = np.nan
-
 
         return result_df
