@@ -96,7 +96,7 @@ class FeatureEngineeringPipeline:
             return [], None
             
         logger.debug("Loaded prompt template successfully")
-        logger.info(f"Prompt: {prompt}")
+        logger.debug(f"Prompt: {prompt}")
         
         try:
             # Use the LLM with format support

@@ -12,5 +12,28 @@ if __name__ == "__main__":
 
     description = "This is a sample dataset with various features of health data and other, the target is the 'status' column."
 
-    new_dataset = orchestrator.run(dataset_path="data/datasets/data.csv", dataset_description=description, target_column="status", iterations=1)
-    pprint.pprint(new_dataset)
+    result = orchestrator.run(
+        dataset_path="data/datasets/data.csv", 
+        dataset_description=description, 
+        target_column="target", 
+        iterations=3
+    )
+    
+    print("\n" + "="*50)
+    print("ORCHESTRATION RESULTS")
+    print("="*50)
+    print(f"Final Dataset: {result['final_dataset']}")
+    print(f"Final Score: {result['final_score']:.4f}")
+    print(f"Best Dataset: {result['best_dataset']}")
+    print(f"Best Score: {result['best_score']:.4f} (Version {result['best_version']})")
+    print(f"Total Transformations: {result['transformations_count']}")
+    print(f"Score History: {[f'{score:.4f}' for score in result['score_history']]}")
+    
+    print(f"\nScore Evolution:")
+    print(f"  Baseline (cleaned): {result['score_history'][0]:.4f}")
+    for i, score in enumerate(result['score_history'][1:], 1):
+        marker = " ★" if score == result['best_score'] else ""
+        print(f"  Version {i}: {score:.4f}{marker}")
+    
+    print("\nDetailed Results:")
+    pprint.pprint(result)

@@ -41,20 +41,25 @@ class VersionManager:
         final_output_path: str,
         new_transformations_count: int,
         total_transformations_count: int,
-        description: Optional[str] = None
+        description: str,
+        ml_score: float = 0.0
     ) -> Dict[str, Any]:
-        """Create a version history entry."""
+        """Create a version entry with ML score."""
         version_entry = {
-            "version": self.current_version,
-            "input_path": input_path,
-            "fe_output_path": fe_output_path,
-            "output_path": final_output_path,
-            "new_transformations_count": new_transformations_count,
-            "total_transformations_count": total_transformations_count,
-            "description": description,
-            "timestamp": datetime.now().isoformat(),
+            'version': self.current_version,
+            'timestamp': datetime.now().isoformat(),
+            'input_path': input_path,
+            'fe_output_path': fe_output_path,
+            'final_output_path': final_output_path,
+            'new_transformations_count': new_transformations_count,
+            'total_transformations_count': total_transformations_count,
+            'description': description,
+            'ml_score': ml_score
         }
+        
         self.version_history.append(version_entry)
+        logger.info(f"Version {self.current_version} created with ML score: {ml_score:.4f}")
+        
         return version_entry
     
     def save_version_config(
