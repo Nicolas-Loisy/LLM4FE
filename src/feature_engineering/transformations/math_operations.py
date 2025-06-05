@@ -24,7 +24,7 @@ class MathOperationsTransform(BaseTransformation):
         
     Param:
         - operation: The type of mathematical operation to apply. Supported operations are:
-            - 'log': Logarithm (handles zeros and negative values by applying log1p).
+            - 'log1p': Logarithm (handles zeros and negative values by applying log1p).
             - 'sqrt': Square root (handles negative values by clipping to zero).
             - 'square': Square of the column values.
             - 'mean': Mean of the specified columns.
@@ -40,7 +40,7 @@ class MathOperationsTransform(BaseTransformation):
         Args:
             new_column_name: The name of the output column after transformation
             source_columns: List of column names to process
-            param: Dictionary containing the operation type ('log', 'sqrt', 'square', 'mean', 'sum', 'diff', 'ratio')
+            param: Dictionary containing the operation type ('log1p', 'sqrt', 'square', 'mean', 'sum', 'diff', 'ratio')
         """
         super().__init__(new_column_name, source_columns, param)
         
@@ -48,7 +48,7 @@ class MathOperationsTransform(BaseTransformation):
         if not isinstance(param, dict) or "operation" not in param:
             raise ValueError("Invalid param structure. Expected a dictionary with an 'operation' key.")
         
-        if param["operation"] not in ["multiply", "addition", "log", "sqrt", "square", "mean", "sum", "diff", "ratio"]:
+        if param["operation"] not in ["multiply", "addition", "log1p", "sqrt", "square", "mean", "sum", "diff", "ratio"]:
             raise ValueError(f"Unsupported operation: {param['operation']}")
     
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -66,8 +66,8 @@ class MathOperationsTransform(BaseTransformation):
         # Single column operations
         if len(self.source_columns) == 1 :
             col = self.source_columns[0]
-            if self.param["operation"] == 'log':
-                logger.info("log")
+            if self.param["operation"] == 'log1p':
+                logger.info("log1p")
                 # Apply log1p to handle zeros and negative values
                 result_df[self.new_column_name] = np.log1p(df[col])
             

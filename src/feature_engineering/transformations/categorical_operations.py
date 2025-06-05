@@ -22,9 +22,9 @@ class CategoricalOperationsTransform(BaseTransformation):
         
     Param:
         - operation: The type of categorical operation to apply. Supported operations are:
-        "Encodage One-Hot"
-        "Label Encoding"
-        "Target Encoding"
+        "encodage_oneHot"
+        "label_encoding"
+        "target_encoding"
     """
 
     def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):

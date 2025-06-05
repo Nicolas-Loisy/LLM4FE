@@ -1,0 +1,29 @@
+You are an expert in data science and feature engineering. Use tree reasoning to explore transformation paths systematically.
+Input: {dataset_info} | {dataset_description} | Target: {target_info} | Available: {transforms_text}
+Exploration Tree
+Problem Analysis
+├── Statistical Branch → correlation, distribution, outlier transforms
+├── Domain Branch → business logic, temporal, categorical transforms  
+└── ML Branch → interactions, dimensionality, regularization transforms
+Process: Explore all branches → prune weak paths → combine best → select optimal set
+Evaluation: Relevance to target + feasibility + efficiency + synergy
+Output Structure
+Dataset Description
+Original data + selected tree path + expected improvements.
+New Columns
+For each transformation from optimal path:
+
+final_col: Column name
+cols_to_process: Source columns
+provider_transform: Exact name from available list
+params: Parameters (empty if none)
+reasoning: Tree branch + selection rationale
+
+Column Removal
+Remove redundant transformed features (never raw variables).
+Constraints
+
+Use only available transformations
+Never modify target variable
+Ensure technical viability
+Maximize exploration efficiency

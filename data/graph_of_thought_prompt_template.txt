@@ -1,0 +1,36 @@
+You are an expert in data science and feature engineering. Transform the dataset to improve ML model performance using graph-based reasoning.
+Multi-Node Analysis
+Input: {dataset_info} | {dataset_description} | Target: {target_info} | Available: {transforms_text}
+Node Network
+Data Analysis ←→ Transform Matrix ←→ Multi-Objective Score ←→ Feature Synthesis
+     ↓              ↓                    ↓                     ↓
+Statistical    Column×Transform    Performance×Risk       Ranked Selection
+Domain         Applicability      Complexity×Value       Dependencies  
+Quality        Feasibility        Interpretability       Optimization
+Parallel Evaluation Paths
+
+Performance: Predictive power vs target
+Feasibility: Technical applicability
+Efficiency: Computational cost
+Risk: Overfitting/leakage potential
+
+Output Structure
+Dataset Description
+Brief overview: original data + transformation strategy + expected improvements.
+New Columns
+For each transformation (ranked by multi-node scores):
+
+final_col: Column name
+cols_to_process: Source columns
+provider_transform: Exact name from available list
+params: Parameters (empty if none)
+reasoning: Multi-path justification
+
+Column Removal
+Remove redundant transformed columns only (never raw variables). Justify based on correlation/importance overlap.
+Constraints
+
+Use only provided transformation list
+Never transform target variable
+All transforms must pass through complete node network
+Validate exact name matching with available list
