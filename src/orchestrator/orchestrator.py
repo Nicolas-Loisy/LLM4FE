@@ -21,6 +21,34 @@ class Orchestrator:
         self.best_score = -float('inf')
         self.best_dataset_path = None
         self.best_version = None
+        
+        # Load the default prompt template
+        self.prompt_template = self.config.get_file_content("prompt_file")
+        if not self.prompt_template:
+            raise ValueError("Failed to load prompt template from config")
+        logger.info("Default prompt template loaded successfully")
+        
+        # Load multiple prompt templates if available
+        self.prompt_templates = []
+        prompt_files = self.config.get("prompt_files", [])
+        if prompt_files:
+            for prompt_file in prompt_files:
+                template = self.config.get_file_content_by_path(prompt_file)
+                if template:
+                    self.prompt_templates.append({
+                        'name': prompt_file,
+                        'template': template
+                    })
+                    logger.info(f"Loaded prompt template: {prompt_file}")
+                else:
+                    logger.warning(f"Failed to load prompt template: {prompt_file}")
+        
+        if not self.prompt_templates:
+            # Fallback to single prompt
+            self.prompt_templates = [{
+                'name': self.config.get("prompt_file", "default"),
+                'template': self.prompt_template
+            }]
 
     def run(
         self, 
@@ -183,6 +211,7 @@ class Orchestrator:
         """Execute feature engineering pipeline."""
         fe_pipeline = FeatureEngineeringPipeline(
             dataset_path=dataset_path,
+            prompt=self.prompt_template,
             dataset_description=description,
             target_column=target_column
         )
@@ -243,3 +272,114 @@ class Orchestrator:
             'final_score': self.version_manager.version_history[-1].get('ml_score', 0.0) if self.version_manager.version_history else 0.0,
             'score_history': [v.get('ml_score', 0.0) for v in self.version_manager.version_history]
         }
+
+    def run_multiple_prompts(
+        self,
+        dataset_path: str,
+        dataset_description: Optional[str] = None,
+        target_column: Optional[str] = None,
+        iterations: int = 1
+    ) -> Dict[str, Any]:
+        """
+        Run the orchestration with multiple prompts and compare results.
+        
+        Args:
+            dataset_path: Path to the input dataset
+            dataset_description: Optional description of the dataset
+            target_column: Target column for ML evaluation
+            iterations: Number of iterations per prompt
+            
+        Returns:
+            Dictionary with results for each prompt and overall best results
+        """
+        logger.info(f"Starting multi-prompt orchestration with {len(self.prompt_templates)} prompts...")
+        
+        if target_column is None:
+            raise ValueError("target_column is required for ML evaluation")
+        
+        all_results = {}
+        global_best_score = -float('inf')
+        global_best_prompt = None
+        global_best_result = None
+        
+        for i, prompt_info in enumerate(self.prompt_templates):
+            prompt_name = prompt_info['name']
+            prompt_template = prompt_info['template']
+            
+            logger.info(f"\n{'='*60}")
+            logger.info(f"RUNNING WITH PROMPT {i+1}/{len(self.prompt_templates)}: {prompt_name}")
+            logger.info(f"{'='*60}")
+            
+            try:
+                # Reset state for each prompt
+                self._reset_state()
+                
+                # Set current prompt template
+                self.prompt_template = prompt_template
+                
+                # Run orchestration with current prompt
+                result = self.run(
+                    dataset_path=dataset_path,
+                    dataset_description=dataset_description,
+                    target_column=target_column,
+                    iterations=iterations
+                )
+                
+                # Store result with prompt info
+                result['prompt_name'] = prompt_name
+                result['prompt_template'] = prompt_template
+                all_results[prompt_name] = result
+                
+                logger.info(f"Prompt '{prompt_name}' completed:")
+                logger.info(f"  Best Score: {result['best_score']:.4f}")
+                logger.info(f"  Final Score: {result['final_score']:.4f}")
+                logger.info(f"  Transformations: {result['transformations_count']}")
+                
+                # Track global best
+                if result['best_score'] > global_best_score:
+                    global_best_score = result['best_score']
+                    global_best_prompt = prompt_name
+                    global_best_result = result
+                    logger.info(f"New global best score: {global_best_score:.4f} with prompt '{prompt_name}'")
+                
+            except Exception as e:
+                logger.error(f"Error running with prompt '{prompt_name}': {str(e)}")
+                all_results[prompt_name] = {
+                    'error': str(e),
+                    'prompt_name': prompt_name,
+                    'best_score': 0.0,
+                    'final_score': 0.0
+                }
+        
+        # Build comprehensive results
+        final_results = {
+            'prompt_results': all_results,
+            'global_best_prompt': global_best_prompt,
+            'global_best_score': global_best_score,
+            'global_best_result': global_best_result,
+            'prompts_compared': len(self.prompt_templates),
+            'prompt_summary': {
+                name: {
+                    'best_score': result.get('best_score', 0.0),
+                    'final_score': result.get('final_score', 0.0),
+                    'transformations_count': result.get('transformations_count', 0)
+                }
+                for name, result in all_results.items()
+            }
+        }
+        
+        logger.info(f"\n{'='*60}")
+        logger.info("MULTI-PROMPT ORCHESTRATION COMPLETED")
+        logger.info(f"{'='*60}")
+        logger.info(f"Global Best Prompt: {global_best_prompt}")
+        logger.info(f"Global Best Score: {global_best_score:.4f}")
+        
+        return final_results
+    
+    def _reset_state(self):
+        """Reset orchestrator state for new prompt execution."""
+        self.best_score = -float('inf')
+        self.best_dataset_path = None
+        self.best_version = None
+        # Create new version manager for each prompt run
+        self.version_manager = VersionManager()

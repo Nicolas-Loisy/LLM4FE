@@ -19,7 +19,7 @@ if __name__ == "__main__":
             "new_column_name": "log_final_col3",
             "source_columns": ["Column1"],
             "transformation_type": "math_operations",
-            "transformation_params": {"operation": "log"}
+            "transformation_params": {"operation": "log1p"}
         },
         {
             "new_column_name": "sqrt_final_col4",            

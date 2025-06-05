@@ -106,6 +106,30 @@ class SingletonConfig:
             logger.error(f"Error reading file {file_path}: {str(e)}")
             return default
     
+    def get_file_content_by_path(self, file_path: str, default=None):
+        """Get content of a file by direct path.
+        
+        Args:
+            file_path: The file path relative to project root
+            default: Default value if file can't be loaded
+            
+        Returns:
+            String with file content
+        """
+        if not file_path or not isinstance(file_path, str):
+            return default
+            
+        try:
+            # Get the project root directory (where config was loaded from)
+            base_dir = Path(self.config_path).parent.parent
+            full_path = base_dir / file_path
+            
+            with open(full_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading file {file_path}: {str(e)}")
+            return default
+
     def get_with_params(self, key: str, params=None, default=None):
         """Get configuration value and inject parameters.
         
