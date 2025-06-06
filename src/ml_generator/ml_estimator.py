@@ -34,10 +34,10 @@ class MachineLearningEstimator:
         self.model = None
         self.score: float = None
 
-        if not self.load_dataset():
+        if not self._load_dataset():
             raise ValueError(f"Failed to load dataset from {self.dataset_path}")
 
-    def load_dataset(self) -> bool:
+    def _load_dataset(self) -> bool:
         """
         Load the dataset from a CSV file.
         
@@ -65,7 +65,7 @@ class MachineLearningEstimator:
             logger.error(f"Error loading dataset: {e}")
             return False
 
-    def determine_ml_problem_type(self):
+    def _determine_ml_problem_type(self):
         """Determine if this is a classification or regression problem."""
         if self.Y is None:
             logger.error("No target variable loaded.")
@@ -100,7 +100,7 @@ class MachineLearningEstimator:
         logger.info(f"Problem type detected: {self.problem_type}")
         logger.info(f"The model used depending on the ML problem: {self.model.__class__.__name__}")
 
-    def train_and_predict(self, test_size: float = 0.2) -> Dict[str, Any]:
+    def _train_and_predict(self, test_size: float = 0.2) -> Dict[str, Any]:
         """
         Train model and make predictions.
         
@@ -114,7 +114,7 @@ class MachineLearningEstimator:
             logger.error("No dataset loaded.")
             return {}
         
-        self.determine_ml_problem_type()
+        self._determine_ml_problem_type()
         
         try:
             X_train, X_test, Y_train, Y_test = train_test_split(
@@ -148,12 +148,15 @@ class MachineLearningEstimator:
             logger.error(f"Error during training and prediction: {e}")
             return {}
         
-    def get_best_score(self, old_score: float) -> Tuple[bool, float]:
+    @staticmethod
+    def get_best_score(current_score: float, old_score: float, problem_type: str) -> Tuple[bool, float]:
         """
         Compare the current score with an old score to determine if the new dataset is better.
         
         Args:
+            current_score: Current score to compare.
             old_score: Previous score to compare against.
+            problem_type: Type of ML problem ('classification' or 'regression').
         
         Returns:
             Tuple containing (is_better: bool, percentage_change: float)
@@ -161,31 +164,31 @@ class MachineLearningEstimator:
             - For regression (RMSE): negative percentage = improvement (lower RMSE)
             True if the new score is better, False otherwise.
         """
-        if self.score is None:
+        if current_score is None:
             logger.warning("No current score available for comparison.")
             return False, 0.0
         
-        if self.problem_type is None:
-            logger.warning("Problem type not determined.")
+        if problem_type is None:
+            logger.warning("Problem type not provided.")
             return False, 0.0
         
         if old_score == 0:
             logger.warning("Old score is zero, cannot compare.")
-            percentage_change = float('inf') if self.score > 0 else 0.0
+            percentage_change = float('inf') if current_score > 0 else 0.0
         else:
-            percentage_change = ((self.score - old_score) / abs(old_score)) * 100
+            percentage_change = ((current_score - old_score) / abs(old_score)) * 100
         
 
-        if self.problem_type == CLASSIFICATION:
+        if problem_type == CLASSIFICATION:
             # For F1-score, higher is better
-            is_better = self.score >= old_score
+            is_better = current_score >= old_score
             comparison_symbol = ">=" if is_better else "<"
         else:
             # For RMSE, lower is better
-            is_better = self.score <= old_score
+            is_better = current_score <= old_score
             comparison_symbol = "<=" if is_better else ">"
         
-        logger.info(f"Score comparison: {self.score:.4f} {comparison_symbol} {old_score:.4f} "
+        logger.info(f"Score comparison: {current_score:.4f} {comparison_symbol} {old_score:.4f} "
                     f"Percentage change: {percentage_change:+.2f}% - "
                     f"({'Better/Same' if is_better else 'Worse'})")
         
@@ -203,7 +206,7 @@ class MachineLearningEstimator:
         """
         logger.info("Starting Machine Learning Estimator pipeline for a single iteration...")
 
-        results = self.train_and_predict(test_size)
+        results = self._train_and_predict(test_size)
         
         if not results:
             logger.error("Machine learning Estimator failed to train and predict with the dataset.")
