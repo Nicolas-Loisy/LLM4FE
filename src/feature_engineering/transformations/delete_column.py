@@ -1,6 +1,3 @@
-"""
-Delete a specified column from a dataframe.
-"""
 import logging
 import pandas as pd
 from typing import List, Optional, Dict, Any
