@@ -21,6 +21,7 @@ class Orchestrator:
         self.best_score = -float('inf')
         self.best_dataset_path = None
         self.best_version = None
+        self.problem_type = None  # Track ML problem type
         
         # Load the default prompt template
         self.prompt_template = self.config.get_file_content("prompt_file")
@@ -74,7 +75,9 @@ class Orchestrator:
             
             # Initialize with cleaned dataset score
             logger.info("Evaluating baseline cleaned dataset...")
-            baseline_score = self._evaluate_dataset(current_dataset_path, target_column)
+            baseline_result = self._evaluate_dataset(current_dataset_path, target_column)
+            baseline_score = baseline_result['score']
+            self.problem_type = baseline_result['problem_type']
             self.best_score = baseline_score
             self.best_dataset_path = current_dataset_path
             self.best_version = 0
@@ -102,14 +105,16 @@ class Orchestrator:
                 # Always use the last generated dataset for next iteration
                 current_dataset_path = iteration_dataset_path
                 
-                # Update best score tracking
-                if ml_score > self.best_score:
-                    logger.info(f"New best score found: {ml_score:.4f} (previous: {self.best_score:.4f})")
+                # Update best score tracking using get_best_score
+                is_better, percentage_change = MachineLearningEstimator.get_best_score(ml_score, self.best_score, self.problem_type)
+                
+                if is_better:
+                    logger.info(f"New best score found: {ml_score:.4f} (previous: {self.best_score:.4f}) - Improvement: {percentage_change:+.2f}%")
                     self.best_score = ml_score
                     self.best_dataset_path = iteration_dataset_path
                     self.best_version = i + 1
                 else:
-                    logger.info(f"Score {ml_score:.4f} did not improve best score {self.best_score:.4f}")
+                    logger.info(f"Score {ml_score:.4f} did not improve best score {self.best_score:.4f} - Change: {percentage_change:+.2f}%")
                     logger.info(f"Continuing with last generated dataset for next iteration")
                 
                 logger.info(f"Iteration {i+1} completed successfully")
@@ -173,7 +178,7 @@ class Orchestrator:
         final_dataset = pd.read_csv(final_output_path)
         
         # ML Evaluation
-        ml_score = self._evaluate_dataset(final_output_path, target_column)
+        ml_score = self._evaluate_dataset(final_output_path, target_column)['score']
         logger.info(f"ML Score for iteration {iteration_number}: {ml_score:.4f}")
         
         # Update tracking
@@ -189,18 +194,22 @@ class Orchestrator:
         
         return final_output_path, updated_description, all_transformations, ml_score
 
-    def _evaluate_dataset(self, dataset_path: str, target_column: str) -> float:
-        """Evaluate dataset using ML estimator and return score."""
+    def _evaluate_dataset(self, dataset_path: str, target_column: str) -> Dict[str, Any]:
+        """Evaluate dataset using ML estimator and return score and detailed results."""
         try:
             ml_estimator = MachineLearningEstimator(
                 dataset_path=dataset_path,
                 target_col=target_column
             )
             results = ml_estimator.run()
-            return results.get('score', 0.0)
+            return {
+                'score': results.get('score', 0.0),
+                'problem_type': results.get('problem_type', 'unknown'),
+                'metric_name': results.get('metric_name', 'unknown')
+            }
         except Exception as e:
             logger.error(f"ML evaluation failed: {str(e)}")
-            return 0.0
+            return {'score': 0.0, 'problem_type': 'unknown', 'metric_name': 'unknown'}
 
     def _run_feature_engineering(
         self, 
@@ -381,5 +390,6 @@ class Orchestrator:
         self.best_score = -float('inf')
         self.best_dataset_path = None
         self.best_version = None
+        self.problem_type = None
         # Create new version manager for each prompt run
         self.version_manager = VersionManager()
