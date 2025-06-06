@@ -43,12 +43,20 @@ class DateTimeProcessingTransform(BaseTransformation):
             param: Parameters for the transformation, e.g. 'operation' or 'periods'
         """
         super().__init__(new_column_name, source_columns, param)
+        self.valid = True
+        valid_operations = ['year', 'month', 'day', 'weekday', 'days_diff', 'period']
 
-        if not isinstance(param, dict) or "operation" not in param:
-            raise ValueError("Invalid param: expected a dictionary with an 'operation' key.")
+        if not isinstance(self.param, dict) or "operation" not in self.param:
+            logger.error(f"[{self.PROVIDER}] Invalid param: expected a dictionary with an 'operation' key.")
+            self.valid = False
 
-        if len(source_columns) not in [1, 2]:
-            raise ValueError("DateTimeProcessingTransform supports either one or two source columns.")
+        elif self.param["operation"] not in valid_operations:
+            logger.error(f"[{self.PROVIDER}] Unsupported operation: {self.param['operation']}")
+            self.valid = False
+
+        elif len(source_columns) not in [1, 2]:
+            logger.error(f"[{self.PROVIDER}] Invalid number of source columns: {len(source_columns)}. Must be 1 or 2.")
+            self.valid = False
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -61,11 +69,15 @@ class DateTimeProcessingTransform(BaseTransformation):
             Dataframe with processed date column(s) added
         """
         result_df = df.copy()
+        if not self.valid:
+            logger.warning(f"[{self.PROVIDER}] Skipping transformation due to invalid configuration.")
+            return result_df
 
         try :
             for col in self.source_columns:
                 if col not in df.columns:
-                    raise ValueError(f"Column '{col}' not found in dataframe.")
+                    logger.warning(f"Column '{col}' not found in dataframe. Skipping.")
+                    return result_df
                 if not pd.api.types.is_datetime64_any_dtype(result_df[col]):
                     logger.info(f"Converting '{col}' to datetime")
                     result_df[col] = pd.to_datetime(result_df[col], errors="coerce")
@@ -74,9 +86,6 @@ class DateTimeProcessingTransform(BaseTransformation):
             col = self.source_columns[0]
             
             operation = self.param["operation"]
-            if not operation:
-                logger.error("Missing 'operation' in parameters.")
-                return result_df
             
             if operation == 'year':
                 logger.info("Extracting year")
@@ -128,5 +137,6 @@ class DateTimeProcessingTransform(BaseTransformation):
 
         except Exception as e:
             logger.exception(f"[{self.PROVIDER}] Unexpected error during transformation: {e}")
-
+            return result_df
+        
         return result_df

@@ -59,7 +59,7 @@ class CategoricalOperationsTransform(BaseTransformation):
     
         if self.param["operation"] == 'encodage_oneHot' :
 
-            encoder = OneHotEncoder(sparse_output=False)
+            encoder = OneHotEncoder(sparse=False)
             for col in self.source_columns:
                 endoded_array = encoder.fit_transform(df[[col]])
                 new_columns = encoder.get_feature_names_out([col])
