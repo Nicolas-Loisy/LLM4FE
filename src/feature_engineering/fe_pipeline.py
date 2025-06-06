@@ -13,16 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 class FeatureEngineeringPipeline:
-    def __init__(self, dataset_path: str, dataset_description: Optional[str] = None, target_column: Optional[str] = None):
+    def __init__(self, dataset_path: str, prompt: str, dataset_description: Optional[str] = None, target_column: Optional[str] = None):
         """
         Initialize Feature Engineering Pipeline.
         
         Args:
             dataset_path: Path to the input dataset (CSV file).
+            prompt: The prompt template to use for LLM generation.
             dataset_description: Optional description of the dataset to guide transformations.
             target_column: Optional target column for supervised learning tasks.
         """
         self.dataset_path: Path = Path(dataset_path)
+        self.prompt: str = prompt
         self.dataset_description: Optional[str] = dataset_description
         self.target_column: Optional[str] = target_column
         self.transformations: List[Transformation] = []
@@ -84,25 +86,22 @@ class FeatureEngineeringPipeline:
         transforms_text = self.get_available_transformations_info()
         target_info = self.get_target_column_info()
 
-        prompt = self.config.get_with_params("prompt_file", {
-            "dataset_info": dataset_info,
-            "dataset_description": self.dataset_description or 'No description provided',
-            "target_info": target_info,
-            "transforms_text": transforms_text
-        })
+        # Use the provided prompt with parameter injection
+        formatted_prompt = self.prompt.format(
+            dataset_info=dataset_info,
+            dataset_description=self.dataset_description or 'No description provided',
+            target_info=target_info,
+            transforms_text=transforms_text
+        )
         
-        if not prompt:
-            logger.error("Failed to load prompt template")
-            return [], None
-            
-        logger.debug("Loaded prompt template successfully")
-        logger.info(f"Prompt: {prompt}")
+        logger.debug("Using provided prompt template")
+        logger.debug(f"Prompt: {formatted_prompt}")
         
         try:
             # Use the LLM with format support
             logger.info("Generating transformations with LLM...")
             response: DatasetStructure = self.llm.generate_with_format(
-                prompt=prompt,
+                prompt=formatted_prompt,
                 response_format=DatasetStructure
             )
             logger.info("LLM response received.")

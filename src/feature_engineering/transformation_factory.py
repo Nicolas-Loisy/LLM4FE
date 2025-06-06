@@ -5,6 +5,7 @@ from src.feature_engineering.transformations.text_processing import TextProcessi
 from src.feature_engineering.transformations.categorical_operations import CategoricalOperationsTransform
 from src.feature_engineering.transformations.datetime_processing import DateTimeProcessingTransform
 from src.feature_engineering.transformations.delete_column import DeleteColumnTransform
+from src.feature_engineering.transformations.math_formula import MathFormulaTransform
 
 class TransformationFactory:
     """
@@ -18,6 +19,7 @@ class TransformationFactory:
         DeleteColumnTransform.PROVIDER,
         CategoricalOperationsTransform.PROVIDER,
         DateTimeProcessingTransform.PROVIDER,
+        MathFormulaTransform.PROVIDER,
         # TODO : Add other transformation providers here
     ]
 
@@ -28,6 +30,7 @@ class TransformationFactory:
         DeleteColumnTransform.PROVIDER: DeleteColumnTransform.DESCRIPTION,
         CategoricalOperationsTransform.PROVIDER: CategoricalOperationsTransform.DESCRIPTION,
         DateTimeProcessingTransform.PROVIDER: DateTimeProcessingTransform.DESCRIPTION,
+        MathFormulaTransform.PROVIDER: MathFormulaTransform.DESCRIPTION,
         # TODO : Add descriptions for other transformations
     }
 
@@ -52,20 +55,23 @@ class TransformationFactory:
         new_column_name = transformation_config.get("final_col", None)
         source_columns = transformation_config.get("cols_to_process", [])
 
-        if provider == "math_operations":
+        if provider == MathOperationsTransform.PROVIDER:
             return MathOperationsTransform(new_column_name, source_columns, param)
 
-        if provider == "text_processing":
+        if provider == TextProcessingTransform.PROVIDER:
             return TextProcessingTransform(new_column_name, source_columns, param)
-        
-        if provider == "categorical_operations":
+
+        if provider == CategoricalOperationsTransform.PROVIDER:
             return CategoricalOperationsTransform(new_column_name, source_columns, param)
-        
-        if provider == "datetime_processing":
+
+        if provider == DateTimeProcessingTransform.PROVIDER:
             return DateTimeProcessingTransform(new_column_name, source_columns, param)
-        
-        if provider == "delete_column":
+
+        if provider == DeleteColumnTransform.PROVIDER:
             return DeleteColumnTransform(new_column_name, source_columns, param)
+
+        if provider == MathFormulaTransform.PROVIDER:
+            return MathFormulaTransform(new_column_name, source_columns, param)
 
         # Add more transformations as needed
         raise ValueError(f"Transformation provider '{provider}' not found.")

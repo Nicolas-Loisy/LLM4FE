@@ -10,5 +10,13 @@
         "api_key": "${OPENAI_API_KEY}",
         "model": "gpt-4o"
     },
-    "prompt_file": "data/prompt_template.txt"
+    "prompt_file": "data/intuitive_prompt_template.txt",
+    "prompt_files": [
+        "data/intuitive_prompt_template.txt",
+        "data/chain_of_thought_prompt_template.txt",
+        "data/graph_of_thought_prompt_template.txt",
+        "data/one_shot_prompt_template.txt",
+        "data/tree_of_thought_prompt_template.txt",
+        "data/zero_shot_prompt_template.txt"
+    ]
 }

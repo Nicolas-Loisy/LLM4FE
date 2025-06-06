@@ -1,0 +1,16 @@
+Create optimal feature transformations to improve ML model performance.
+Data: {dataset_info} | {dataset_description} | Target: {target_info} | Transforms: {transforms_text}
+Output
+Dataset Description
+Brief overview and transformation strategy.
+New Columns
+
+final_col: Column name
+cols_to_process: Source columns
+provider_transform: Transform from available list
+params: Parameters (empty if none)
+reasoning: Impact justification
+
+Column Removal
+List redundant transformed columns to remove.
+Rules: Use only available transforms, never modify target, focus on maximum impact.
