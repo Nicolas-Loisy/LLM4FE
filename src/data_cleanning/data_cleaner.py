@@ -28,11 +28,11 @@ class DataCleaner:
         # Remplacement des NaN
         for col in num_cols:
             if df_cleaned[col].isnull().sum() > 0:
-                df_cleaned[col].fillna(df_cleaned[col].median(), inplace=True)
+                df_cleaned[col] = df_cleaned[col].fillna(df_cleaned[col].median())
 
         for col in cat_cols:
             if df_cleaned[col].isnull().sum() > 0:
-                df_cleaned[col].fillna(df_cleaned[col].mode()[0], inplace=True)
+                df_cleaned[col] = df_cleaned[col].fillna(df_cleaned[col].mode()[0])
 
         # Encoder la colonne target si spécifiée
         if target_column and target_column in df_cleaned.columns:
