@@ -51,7 +51,6 @@ class MachineLearningEstimator:
             if not self.dataset_path.exists():
                 raise FileNotFoundError(f"File not found: {self.dataset_path}")
 
-
             self.dataset = pd.read_csv(self.dataset_path)
             logger.info(f"Dataset loaded from {self.dataset_path}")
             if self.target_col not in self.dataset.columns:
