@@ -13,7 +13,8 @@ if __name__ == "__main__":
     description = "This is a sample dataset with various features of health data and other, the target is the 'status' column."
 
     # Choose execution mode
-    USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
+    # USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
+    USE_MULTIPLE_PROMPTS = False
     
     if USE_MULTIPLE_PROMPTS:
         print("\n" + "="*70)
