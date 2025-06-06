@@ -1,10 +1,10 @@
-"""
-Delete a specified column from a dataframe.
-"""
+import logging
 import pandas as pd
 from typing import List, Optional, Dict, Any
 
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
+
+logger = logging.getLogger(__name__)
 
 class DeleteColumnTransform(BaseTransformation):
     """
@@ -35,9 +35,14 @@ class DeleteColumnTransform(BaseTransformation):
             param: No parameters needed.
         """
         super().__init__(new_column_name, source_columns, param)
+        self.valid = True
 
+        if not isinstance(source_columns, list):
+            logger.error(f"[{self.PROVIDER}] 'source_columns' must be a list.")
+            self.valid = False
         if len(source_columns) != 1:
-            raise ValueError("DeleteColumnTransform requires exactly one source column to delete.")
+            logger.error(f"[{self.PROVIDER}] Exactly one source column must be provided, got {len(source_columns)}.")
+            self.valid = False
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -49,12 +54,22 @@ class DeleteColumnTransform(BaseTransformation):
         Returns:
             Dataframe without the specified column.
         """
-        col_to_delete = self.source_columns[0]
-
-        if col_to_delete not in df.columns:
-            raise ValueError(f"Column '{col_to_delete}' not found in dataframe.")
-
         result_df = df.copy()
-        result_df.drop(columns=[col_to_delete], inplace=True)
+        if not self.valid:
+            logger.warning(f"[{self.PROVIDER}] Skipping transformation due to invalid configuration.")
+            return result_df
 
-        return result_df
+        try : 
+            col_to_delete = self.source_columns[0]
+
+            if col_to_delete not in df.columns:
+                logger.error(f"[{self.PROVIDER}] Column '{col_to_delete}' not found in dataframe.")
+                return result_df
+            
+            result_df.drop(columns=[col_to_delete], inplace=True)
+
+            return result_df
+        
+        except Exception as e:
+            logger.exception(f"[{self.PROVIDER}] Error during column deletion: {e}")
+            return result_df
