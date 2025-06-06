@@ -226,20 +226,3 @@ class MathFormulaTransform(BaseTransformation):
             result_df[self.new_column_name] = np.nan
 
         return result_df
-
-
-# Example usage:
-"""
-# Create transformation instance
-transform = MathFormulaTransform(
-    new_column_name="price_per_sqft_ratio",
-    source_columns=["price", "sqft", "rooms"],
-    param={
-        "formula": "price / sqft + log1p(rooms)",
-        "safe_mode": True
-    }
-)
-
-# Apply to DataFrame
-df_transformed = transform.transform(df)
-"""
