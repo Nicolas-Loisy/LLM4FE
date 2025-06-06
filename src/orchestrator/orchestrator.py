@@ -395,7 +395,7 @@ class Orchestrator:
                     global_best_score = result['best_score']
                     global_best_prompt = prompt_name
                     global_best_result = result
-                    logger.info(f"New global best score: {global_best_score:.4f} with prompt '{prompt_name}'")
+                    logger.info(f"New global best score: {global_best_score:.4f} with prompt '{global_best_prompt}'")
                 
             except Exception as e:
                 logger.error(f"Error running with prompt '{prompt_name}': {str(e)}")
@@ -465,7 +465,7 @@ class Orchestrator:
         
         elif iteration_type == IterationType.PERCENTAGE_IMPROVEMENT:
             # Stop if improvement percentage is below threshold
-            if is_better and abs(percentage_change) < min_improvement_percentage:
+            if is_better and percentage_change < min_improvement_percentage:
                 logger.info(f"Stopping iterations: Improvement {percentage_change:.2f}% is below threshold {min_improvement_percentage}%")
                 return True
             elif not is_better:
