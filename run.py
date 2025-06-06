@@ -8,7 +8,7 @@ if __name__ == "__main__":
     logging_path = os.path.join(Path(__file__).parent, "data", "logs","logging.ini")
     init_logger(logger_path=str(logging_path))
 
-    orchestrator = Orchestrator(config_path="data/config.json")
+    orchestrator = Orchestrator(config_path="data/configs/config.json")
 
     description = "This is a sample dataset with various features of health data and other, the target is the 'status' column."
 

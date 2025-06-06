@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
@@ -148,7 +148,7 @@ class MachineLearningEstimator:
             logger.error(f"Error during training and prediction: {e}")
             return {}
         
-    def score_better(self, old_score: float) -> bool:
+    def score_better(self, old_score: float) -> Tuple[bool, float]:
         """
         Compare the current score with an old score to determine if the new dataset is better.
         
@@ -156,29 +156,40 @@ class MachineLearningEstimator:
             old_score: Previous score to compare against.
         
         Returns:
+            Tuple containing (is_better: bool, percentage_change: float)
+            - For classification (F1-score): positive percentage = improvement
+            - For regression (RMSE): negative percentage = improvement (lower RMSE)
             True if the new score is better, False otherwise.
         """
         if self.score is None:
             logger.warning("No current score available for comparison.")
-            return False
+            return False, 0.0
         
         if self.problem_type is None:
             logger.warning("Problem type not determined.")
-            return False
+            return False, 0.0
         
+        if old_score == 0:
+            logger.warning("Old score is zero, cannot compare.")
+            percentage_change = float('inf') if self.score > 0 else 0.0
+        else:
+            percentage_change = ((self.score - old_score) / abs(old_score)) * 100
+        
+
         if self.problem_type == CLASSIFICATION:
             # For F1-score, higher is better
-            is_better = self.score > old_score
-            comparison_symbol = ">" if is_better else "<="
+            is_better = self.score >= old_score
+            comparison_symbol = ">=" if is_better else "<"
         else:
             # For RMSE, lower is better
-            is_better = self.score < old_score
-            comparison_symbol = "<" if is_better else ">="
+            is_better = self.score <= old_score
+            comparison_symbol = "<=" if is_better else ">"
         
         logger.info(f"Score comparison: {self.score:.4f} {comparison_symbol} {old_score:.4f} "
-                    f"({'Better' if is_better else 'Worse/Same'})")
+                    f"Percentage change: {percentage_change:+.2f}% - "
+                    f"({'Better/Same' if is_better else 'Worse'})")
         
-        return is_better
+        return is_better, percentage_change
         
     def run(self, test_size: float = 0.2) -> Dict[str, Any]:
         """

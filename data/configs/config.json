@@ -1,0 +1,22 @@
+{
+    "llm": {
+        "provider": "OpenWebUI",
+        "api_key": "${OPENWEBUI_API_KEY}",
+        "api_url": "https://pleiade.mi.parisdescartes.fr",
+        "model": "llama3.3:latest"
+    },
+    "_llm": {
+        "provider": "OpenAi",
+        "api_key": "${OPENAI_API_KEY}",
+        "model": "gpt-4o"
+    },
+    "prompt_file": "data/prompts/intuitive_prompt_template.txt",
+    "prompt_files": [
+        "data/prompts/intuitive_prompt_template.txt",
+        "data/prompts/chain_of_thought_prompt_template.txt",
+        "data/prompts/graph_of_thought_prompt_template.txt",
+        "data/prompts/one_shot_prompt_template.txt",
+        "data/prompts/tree_of_thought_prompt_template.txt",
+        "data/prompts/zero_shot_prompt_template.txt"
+    ]
+}
