@@ -1,7 +1,7 @@
 if __name__ == "__main__":
     import os
     from pathlib import Path
-    from src.orchestrator.orchestrator import Orchestrator
+    from src.orchestrator.orchestrator import Orchestrator, IterationType
     from src.utils.logger import init_logger
     import pprint
     
@@ -16,6 +16,11 @@ if __name__ == "__main__":
     # USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
     USE_MULTIPLE_PROMPTS = False
     
+    # Choose iteration type
+    ITERATION_TYPE = IterationType.FIXED  # Options: FIXED, SCORE_IMPROVEMENT, PERCENTAGE_IMPROVEMENT
+    # ITERATION_TYPE = IterationType.SCORE_IMPROVEMENT
+    # ITERATION_TYPE = IterationType.PERCENTAGE_IMPROVEMENT
+    
     if USE_MULTIPLE_PROMPTS:
         print("\n" + "="*70)
         print("RUNNING MULTI-PROMPT ORCHESTRATION")
@@ -25,7 +30,9 @@ if __name__ == "__main__":
             dataset_path="data/datasets/data.csv", 
             dataset_description=description, 
             target_column="target", 
-            iterations=2
+            max_iterations=5,
+            iteration_type=ITERATION_TYPE,
+            min_improvement_percentage=1.0  # Only used for PERCENTAGE_IMPROVEMENT
         )
         
         print("\n" + "="*50)
@@ -51,18 +58,39 @@ if __name__ == "__main__":
     else:
         print("\n" + "="*70)
         print("RUNNING SINGLE PROMPT ORCHESTRATION")
+        print(f"ITERATION TYPE: {ITERATION_TYPE.value.upper()}")
         print("="*70)
         
-        result = orchestrator.run(
-            dataset_path="data/datasets/data.csv", 
-            dataset_description=description, 
-            target_column="target", 
-            iterations=3
-        )
+        if ITERATION_TYPE == IterationType.FIXED:
+            result = orchestrator.run(
+                dataset_path="data/datasets/data.csv", 
+                dataset_description=description, 
+                target_column="target", 
+                max_iterations=3,
+                iteration_type=ITERATION_TYPE
+            )
+        elif ITERATION_TYPE == IterationType.SCORE_IMPROVEMENT:
+            result = orchestrator.run(
+                dataset_path="data/datasets/data.csv", 
+                dataset_description=description, 
+                target_column="target", 
+                max_iterations=10,
+                iteration_type=ITERATION_TYPE
+            )
+        elif ITERATION_TYPE == IterationType.PERCENTAGE_IMPROVEMENT:
+            result = orchestrator.run(
+                dataset_path="data/datasets/data.csv", 
+                dataset_description=description, 
+                target_column="target", 
+                max_iterations=10,
+                iteration_type=ITERATION_TYPE,
+                min_improvement_percentage=2.0  # Stop if improvement < 2%
+            )
         
         print("\n" + "="*50)
         print("ORCHESTRATION RESULTS")
         print("="*50)
+        print(f"Iteration Type: {ITERATION_TYPE.value}")
         print(f"Final Dataset: {result['final_dataset']}")
         print(f"Final Score: {result['final_score']:.4f}")
         print(f"Best Dataset: {result['best_dataset']}")

@@ -1,6 +1,7 @@
 import logging
-from typing import Optional, Dict, Any, List, Tuple
 import pandas as pd
+from typing import Optional, Dict, Any, List, Tuple
+from enum import Enum
 
 from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
 from src.data_cleanning.data_cleaner import DataCleaner
@@ -9,6 +10,19 @@ from src.ml_generator.ml_estimator import MachineLearningEstimator
 from src.utils.config import get_config
 
 logger = logging.getLogger(__name__)
+
+
+class IterationType(Enum):
+    """
+    Enum to represent the type of iteration control for the orchestrator.
+
+    - FIXED: Run a fixed number of iterations.
+    - SCORE_IMPROVEMENT: Stop if there is no improvement in score.
+    - PERCENTAGE_IMPROVEMENT: Stop if the improvement is below a minimum percentage.
+    """
+    FIXED = "fixed"
+    SCORE_IMPROVEMENT = "score_improvement" 
+    PERCENTAGE_IMPROVEMENT = "percentage_improvement"
 
 
 class Orchestrator:
@@ -56,10 +70,19 @@ class Orchestrator:
         dataset_path: str, 
         dataset_description: Optional[str] = None, 
         target_column: Optional[str] = None,
-        iterations: int = 1
+        max_iterations: int = 3,
+        iteration_type: IterationType = IterationType.FIXED,
+        min_improvement_percentage: float = 1.0
     ) -> Dict[str, Any]:
         """Main entry point to run the feature engineering pipeline."""
-        logger.info(f"Starting LLM4FE orchestration with {iterations} iterations...")
+        logger.info(f"Starting LLM4FE orchestration with iteration type: {iteration_type.value}")
+        
+        if iteration_type == IterationType.FIXED:
+            logger.info(f"Fixed iterations: {max_iterations}")
+        elif iteration_type == IterationType.SCORE_IMPROVEMENT:
+            logger.info(f"Score improvement mode (max iterations: {max_iterations})")
+        elif iteration_type == IterationType.PERCENTAGE_IMPROVEMENT:
+            logger.info(f"Percentage improvement mode: {min_improvement_percentage}% (max iterations: {max_iterations})")
         
         if target_column is None:
             raise ValueError("target_column is required for ML evaluation")
@@ -84,8 +107,12 @@ class Orchestrator:
             
             logger.info(f"Baseline score (cleaned): {baseline_score:.4f}")
             
-            for i in range(iterations):
-                logger.info(f"Starting iteration {i+1}/{iterations}...")
+            iteration_count = 0
+            consecutive_no_improvement = 0
+            
+            while iteration_count < max_iterations:
+                iteration_count += 1
+                logger.info(f"Starting iteration {iteration_count}/{max_iterations}...")
                 logger.info(f"Using dataset: {current_dataset_path}")
                 
                 result = self._run_single_iteration(
@@ -93,11 +120,11 @@ class Orchestrator:
                     current_description, 
                     target_column, 
                     all_transformations,
-                    i + 1
+                    iteration_count
                 )
                 
                 if result is None:
-                    logger.error(f"Iteration {i+1} failed")
+                    logger.error(f"Iteration {iteration_count} failed")
                     break
                 
                 iteration_dataset_path, current_description, all_transformations, ml_score = result
@@ -112,15 +139,27 @@ class Orchestrator:
                     logger.info(f"New best score found: {ml_score:.4f} (previous: {self.best_score:.4f}) - Improvement: {percentage_change:+.2f}%")
                     self.best_score = ml_score
                     self.best_dataset_path = iteration_dataset_path
-                    self.best_version = i + 1
+                    self.best_version = iteration_count
+                    consecutive_no_improvement = 0
                 else:
                     logger.info(f"Score {ml_score:.4f} did not improve best score {self.best_score:.4f} - Change: {percentage_change:+.2f}%")
+                    consecutive_no_improvement += 1
+                
+                # Check stopping conditions
+                should_stop = self._should_stop_iteration(
+                    iteration_type, iteration_count, max_iterations, is_better, 
+                    percentage_change, min_improvement_percentage, consecutive_no_improvement
+                )
+                
+                if should_stop:
+                    break
+                else:
                     logger.info(f"Continuing with last generated dataset for next iteration")
                 
-                logger.info(f"Iteration {i+1} completed successfully")
+                logger.info(f"Iteration {iteration_count} completed successfully")
             
             self.version_manager.save_global_summary()
-            logger.info(f"Completed all {iterations} iterations.")
+            logger.info(f"Completed {iteration_count} iterations.")
             logger.info(f"Best score: {self.best_score:.4f} from version {self.best_version}")
             logger.info(f"Final dataset: {current_dataset_path}")
             
@@ -287,7 +326,9 @@ class Orchestrator:
         dataset_path: str,
         dataset_description: Optional[str] = None,
         target_column: Optional[str] = None,
-        iterations: int = 1
+        max_iterations: int = 3,
+        iteration_type: IterationType = IterationType.FIXED,
+        min_improvement_percentage: float = 1.0
     ) -> Dict[str, Any]:
         """
         Run the orchestration with multiple prompts and compare results.
@@ -296,12 +337,15 @@ class Orchestrator:
             dataset_path: Path to the input dataset
             dataset_description: Optional description of the dataset
             target_column: Target column for ML evaluation
-            iterations: Number of iterations per prompt
+            max_iterations: Maximum number of iterations to run
+            iteration_type: Type of iteration control (fixed, score improvement, percentage improvement)
+            min_improvement_percentage: Minimum improvement percentage for stopping criteria
             
         Returns:
             Dictionary with results for each prompt and overall best results
         """
         logger.info(f"Starting multi-prompt orchestration with {len(self.prompt_templates)} prompts...")
+        logger.info(f"Iteration type: {iteration_type.value}")
         
         if target_column is None:
             raise ValueError("target_column is required for ML evaluation")
@@ -331,7 +375,9 @@ class Orchestrator:
                     dataset_path=dataset_path,
                     dataset_description=dataset_description,
                     target_column=target_column,
-                    iterations=iterations
+                    max_iterations=max_iterations,
+                    iteration_type=iteration_type,
+                    min_improvement_percentage=min_improvement_percentage
                 )
                 
                 # Store result with prompt info
@@ -393,3 +439,38 @@ class Orchestrator:
         self.problem_type = None
         # Create new version manager for each prompt run
         self.version_manager = VersionManager()
+
+    def _should_stop_iteration(
+        self, 
+        iteration_type: IterationType, 
+        current_iteration: int, 
+        max_iterations: int,
+        is_better: bool, 
+        percentage_change: float, 
+        min_improvement_percentage: float,
+        consecutive_no_improvement: int
+    ) -> bool:
+        """Determine if iterations should stop based on the iteration type and conditions."""
+        
+        if iteration_type == IterationType.FIXED:
+            # For fixed iterations, continue until max reached
+            return False
+        
+        elif iteration_type == IterationType.SCORE_IMPROVEMENT:
+            # Stop if no improvement in the last iteration
+            if not is_better:
+                logger.info("Stopping iterations: No score improvement in current iteration")
+                return True
+            return False
+        
+        elif iteration_type == IterationType.PERCENTAGE_IMPROVEMENT:
+            # Stop if improvement percentage is below threshold
+            if is_better and abs(percentage_change) < min_improvement_percentage:
+                logger.info(f"Stopping iterations: Improvement {percentage_change:.2f}% is below threshold {min_improvement_percentage}%")
+                return True
+            elif not is_better:
+                logger.info("Stopping iterations: No improvement in current iteration")
+                return True
+            return False
+        
+        return False
