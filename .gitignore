@@ -162,5 +162,7 @@ cython_debug/
 #.idea/
 
 # Ignore the dataset directory
-data/datasets/
+data/datasets/Tuberculosis_Dataset.csv
+data/datasets/Loan_approval_dataset.csv
+data/datasets/Amazon_dataset.csv
 data/versions/

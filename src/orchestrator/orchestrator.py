@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class Orchestrator:
-    def __init__(self, config_path: str = "data/config.json"):
+    def __init__(self, config_path: str = "data/configs/config.json"):
         """Initialize the orchestrator."""
         logger.info("Initializing Orchestrator...")
         self.config = get_config(config_path)

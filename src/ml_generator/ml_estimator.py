@@ -1,18 +1,20 @@
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score, 
-    confusion_matrix, classification_report,
-    r2_score, mean_squared_error, mean_absolute_error, 
-    mean_absolute_percentage_error
+    f1_score, root_mean_squared_error as rmse_score
 )
 
 import pandas as pd
 import logging
 
 logger = logging.getLogger(__name__)
+
+CLASSIFICATION = 'classification'
+REGRESSION = 'regression'
+RMSE = 'RMSE'
+F1SCORE = 'F1-Score' 
 
 class MachineLearningEstimator:
     """
@@ -75,22 +77,22 @@ class MachineLearningEstimator:
         dtype = self.Y.dtype
 
         if dtype == 'bool':
-            self.problem_type = 'classification'
+            self.problem_type = CLASSIFICATION
         elif unique_values <= 10:
-            self.problem_type = 'classification'
+            self.problem_type = CLASSIFICATION
         elif dtype in ['int64', 'int32', 'int16']:
             if unique_values <= 20 and unique_ratio < 0.05:
-                self.problem_type = 'classification'
+                self.problem_type = CLASSIFICATION
             # If consecutive values begin with 0 or 1 (often encoded classes)
             elif unique_values < 30 and self.Y.min() in [0, 1] and \
                 set(self.Y.unique()) == set(range(self.Y.min(), self.Y.max() + 1)):
-                self.problem_type = 'classification'
+                self.problem_type = CLASSIFICATION
             else:
-                self.problem_type = 'regression'
+                self.problem_type = REGRESSION
         else:
-            self.problem_type = 'regression'
+            self.problem_type = REGRESSION
 
-        if self.problem_type == 'classification':
+        if self.problem_type == CLASSIFICATION:
             self.model = RandomForestClassifier(random_state=42, n_jobs=-1)
         else:
             self.model = RandomForestRegressor(random_state=42, n_jobs=-1)
@@ -119,7 +121,7 @@ class MachineLearningEstimator:
                 self.X, self.Y, 
                 test_size=test_size, 
                 random_state=42,
-                stratify=self.Y if self.problem_type == 'classification' else None
+                stratify=self.Y if self.problem_type == CLASSIFICATION else None
             )
             
             self.model.fit(X_train, Y_train)
@@ -128,12 +130,12 @@ class MachineLearningEstimator:
             Y_prediction = self.model.predict(X_test)
             logger.info("Model prediction completed.")
             
-            if self.problem_type == 'classification':
-                self.score = accuracy_score(Y_test, Y_prediction)
-                metric_name = "Accuracy"
+            if self.problem_type == CLASSIFICATION:
+                self.score = f1_score(Y_test, Y_prediction, average='macro')
+                metric_name = F1SCORE
             else:
-                self.score = r2_score(Y_test, Y_prediction)
-                metric_name = "R² Score"
+                self.score = rmse_score(Y_test, Y_prediction)
+                metric_name = RMSE
             
             logger.info(f"{metric_name}: {self.score:.4f}")
             
@@ -145,7 +147,50 @@ class MachineLearningEstimator:
         except Exception as e:
             logger.error(f"Error during training and prediction: {e}")
             return {}
+        
+    def get_best_score(self, old_score: float) -> Tuple[bool, float]:
+        """
+        Compare the current score with an old score to determine if the new dataset is better.
+        
+        Args:
+            old_score: Previous score to compare against.
+        
+        Returns:
+            Tuple containing (is_better: bool, percentage_change: float)
+            - For classification (F1-score): positive percentage = improvement
+            - For regression (RMSE): negative percentage = improvement (lower RMSE)
+            True if the new score is better, False otherwise.
+        """
+        if self.score is None:
+            logger.warning("No current score available for comparison.")
+            return False, 0.0
+        
+        if self.problem_type is None:
+            logger.warning("Problem type not determined.")
+            return False, 0.0
+        
+        if old_score == 0:
+            logger.warning("Old score is zero, cannot compare.")
+            percentage_change = float('inf') if self.score > 0 else 0.0
+        else:
+            percentage_change = ((self.score - old_score) / abs(old_score)) * 100
+        
 
+        if self.problem_type == CLASSIFICATION:
+            # For F1-score, higher is better
+            is_better = self.score >= old_score
+            comparison_symbol = ">=" if is_better else "<"
+        else:
+            # For RMSE, lower is better
+            is_better = self.score <= old_score
+            comparison_symbol = "<=" if is_better else ">"
+        
+        logger.info(f"Score comparison: {self.score:.4f} {comparison_symbol} {old_score:.4f} "
+                    f"Percentage change: {percentage_change:+.2f}% - "
+                    f"({'Better/Same' if is_better else 'Worse'})")
+        
+        return is_better, percentage_change
+        
     def run(self, test_size: float = 0.2) -> Dict[str, Any]:
         """
         Run the complete pipeline.

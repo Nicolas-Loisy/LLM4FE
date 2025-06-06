@@ -2,7 +2,7 @@ from src.llm.llm_factory import LLMFactory
 from src.models.dataset_model import DatasetStructure
 from src.utils.config import get_config
 
-config = get_config("data/config.json")
+config = get_config("data/configs/config.json")
 
 prompt = """
 Je veux créer un dataset pour un modèle de machine learning.
