@@ -148,7 +148,7 @@ class MachineLearningEstimator:
             logger.error(f"Error during training and prediction: {e}")
             return {}
         
-    def score_better(self, old_score: float) -> Tuple[bool, float]:
+    def get_best_score(self, old_score: float) -> Tuple[bool, float]:
         """
         Compare the current score with an old score to determine if the new dataset is better.
         

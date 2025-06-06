@@ -14,7 +14,7 @@ if __name__ == "__main__":
     
     # print(f"Problem Type: {ml_results['problem_type']}")
     # print(f"{ml_results['metric_name']}: {ml_results['score']:.4f}")
-    # ml_better = ml_estimator.score_better(1)
+    # ml_better = ml_estimator.get_best_score(1)
     # print(ml_better)
 
     # Regression Example Test
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     
     print(f"Problem Type: {ml_results['problem_type']}")
     print(f"{ml_results['metric_name']}: {ml_results['score']:.4f}")
-    ml_better = ml_estimator.score_better(234000)
+    ml_better = ml_estimator.get_best_score(234000)
     print(ml_better)
 
 
