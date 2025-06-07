@@ -127,18 +127,18 @@ class Orchestrator:
                     logger.error(f"Iteration {iteration_count} failed")
                     break
                 
-                iteration_dataset_path, current_description, all_transformations, ml_score = result
+                fe_dataset_path, cleaned_dataset_path, current_description, all_transformations, ml_score = result
                 
-                # Always use the last generated dataset for next iteration
-                current_dataset_path = iteration_dataset_path
+                # Use feature-engineered dataset for next iteration
+                current_dataset_path = fe_dataset_path
                 
-                # Update best score tracking using get_best_score
+                # Update best score tracking using cleaned dataset evaluation
                 is_better, percentage_change = MachineLearningEstimator.get_best_score(ml_score, self.best_score, self.problem_type)
                 
                 if is_better:
                     logger.info(f"New best score found: {ml_score:.4f} (previous: {self.best_score:.4f}) - Improvement: {percentage_change:+.2f}%")
                     self.best_score = ml_score
-                    self.best_dataset_path = iteration_dataset_path
+                    self.best_dataset_path = cleaned_dataset_path  # Store cleaned dataset as best for final result
                     self.best_version = iteration_count
                     consecutive_no_improvement = 0
                 else:
@@ -154,14 +154,14 @@ class Orchestrator:
                 if should_stop:
                     break
                 else:
-                    logger.info(f"Continuing with last generated dataset for next iteration")
+                    logger.info(f"Continuing with feature-engineered dataset for next iteration")
                 
                 logger.info(f"Iteration {iteration_count} completed successfully")
             
             self.version_manager.save_global_summary()
             logger.info(f"Completed {iteration_count} iterations.")
             logger.info(f"Best score: {self.best_score:.4f} from version {self.best_version}")
-            logger.info(f"Final dataset: {current_dataset_path}")
+            logger.info(f"Next iteration dataset: {current_dataset_path}")
             
             return self._build_final_result(all_transformations, current_dataset_path)
             
@@ -196,7 +196,7 @@ class Orchestrator:
         target_column: str,
         all_transformations: List,
         iteration_number: int
-    ) -> Optional[Tuple[str, str, List, float]]:
+    ) -> Optional[Tuple[str, str, str, List, float]]:
         """Run a single iteration of feature engineering and cleaning."""
         version = self.version_manager.increment_version()
         logger.info(f"Processing version {version}...")
@@ -212,12 +212,12 @@ class Orchestrator:
         # Save dataset after feature engineering
         fe_output_path = self.version_manager.save_dataset(transformed_dataset, "_fe")
         
-        # Data Cleaning
-        final_output_path = self._run_data_cleaning(fe_output_path, target_column)
-        final_dataset = pd.read_csv(final_output_path)
+        # Data Cleaning (only for evaluation)
+        cleaned_output_path = self._run_data_cleaning(fe_output_path, target_column)
+        final_dataset = pd.read_csv(cleaned_output_path)
         
-        # ML Evaluation
-        ml_score = self._evaluate_dataset(final_output_path, target_column)['score']
+        # ML Evaluation (using cleaned dataset)
+        ml_score = self._evaluate_dataset(cleaned_output_path, target_column)['score']
         logger.info(f"ML Score for iteration {iteration_number}: {ml_score:.4f}")
         
         # Update tracking
@@ -226,12 +226,12 @@ class Orchestrator:
         
         # Save version information with ML score
         self._save_version_info(
-            dataset_path, fe_output_path, final_output_path,
+            dataset_path, fe_output_path, cleaned_output_path,
             new_transformations, all_transformations, updated_description,
             final_dataset, target_column, ml_score
         )
         
-        return final_output_path, updated_description, all_transformations, ml_score
+        return fe_output_path, cleaned_output_path, updated_description, all_transformations, ml_score
 
     def _evaluate_dataset(self, dataset_path: str, target_column: str) -> Dict[str, Any]:
         """Evaluate dataset using ML estimator and return score and detailed results."""

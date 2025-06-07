@@ -10,13 +10,13 @@
         "api_key": "${OPENAI_API_KEY}",
         "model": "gpt-4o"
     },
-    "prompt_file": "data/prompts/intuitive_prompt_template.txt",
+    "prompt_file": "prompts/intuitive_prompt_template.txt",
     "prompt_files": [
-        "data/prompts/intuitive_prompt_template.txt",
-        "data/prompts/chain_of_thought_prompt_template.txt",
-        "data/prompts/graph_of_thought_prompt_template.txt",
-        "data/prompts/one_shot_prompt_template.txt",
-        "data/prompts/tree_of_thought_prompt_template.txt",
-        "data/prompts/zero_shot_prompt_template.txt"
+        "prompts/intuitive_prompt_template.txt",
+        "prompts/chain_of_thought_prompt_template.txt",
+        "prompts/graph_of_thought_prompt_template.txt",
+        "prompts/one_shot_prompt_template.txt",
+        "prompts/tree_of_thought_prompt_template.txt",
+        "prompts/zero_shot_prompt_template.txt"
     ]
 }
