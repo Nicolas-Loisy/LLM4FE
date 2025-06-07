@@ -97,9 +97,8 @@ class SingletonConfig:
             
         try:
             # Get the project root directory (where config was loaded from)
-            base_dir = Path(self.config_path).parent.parent
+            base_dir = Path(self.config_path).parent.parent.parent
             full_path = base_dir / file_path
-            
             with open(full_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except Exception as e:
