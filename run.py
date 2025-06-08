@@ -13,8 +13,8 @@ if __name__ == "__main__":
     description = "This is a sample dataset with various features of health data and other, the target is the 'status' column."
 
     # Choose execution mode
-    # USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
-    USE_MULTIPLE_PROMPTS = False
+    USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
+    # USE_MULTIPLE_PROMPTS = False
     
     # Choose iteration type
     ITERATION_TYPE = IterationType.FIXED  # Options: FIXED, SCORE_IMPROVEMENT, PERCENTAGE_IMPROVEMENT
@@ -40,21 +40,23 @@ if __name__ == "__main__":
         print("="*50)
         print(f"Global Best Prompt: {result['global_best_prompt']}")
         print(f"Global Best Score: {result['global_best_score']:.4f}")
-        print(f"Prompts Compared: {result['prompts_compared']}")
+        print(f"Prompts Compared: {len(result['prompt_results'])}")
+        print(f"Iterations Summary Path: {result['iterations_summary_path']}")
         
         print(f"\nPrompt Comparison Summary:")
-        for prompt_name, summary in result['prompt_summary'].items():
+        for prompt_name, summary in result['summary'].items():
             print(f"  {prompt_name}:")
             print(f"    Best Score: {summary['best_score']:.4f}")
-            print(f"    Final Score: {summary['final_score']:.4f}")
-            print(f"    Transformations: {summary['transformations_count']}")
+            print(f"    Iterations: {summary['iterations']}")
         
-        print(f"\n\nBest Result Details:")
-        if result['global_best_result']:
-            best = result['global_best_result']
-            print(f"  Final Dataset: {best['final_dataset']}")
-            print(f"  Score History: {[f'{score:.4f}' for score in best['score_history']]}")
-        
+        # print(f"\n\nBest Result Details:")
+        # if result['global_best_result']:
+        #     best = result['global_best_result']
+        #     print(f"  Final Dataset: {best['final_dataset']}")
+        #     print(f"  Best Dataset: {best['best_dataset']}")
+        #     print(f"  Best Score: {best['best_score']:.4f}")
+        #     print(f"  Total Iterations: {best['total_iterations']}")
+
     else:
         print("\n" + "="*70)
         print("RUNNING SINGLE PROMPT ORCHESTRATION")

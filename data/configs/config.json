@@ -1,11 +1,13 @@
 {
-    "llm": {
+    "_llm": {
         "provider": "OpenWebUI",
         "api_key": "${OPENWEBUI_API_KEY}",
         "api_url": "https://pleiade.mi.parisdescartes.fr",
-        "model": "llama3.3:latest"
+        "model": "llama3.3:latest",
+        "_model": "deepseek-R1:70b",
+        "__model": "mistral-large:latest"
     },
-    "_llm": {
+    "llm": {
         "provider": "OpenAi",
         "api_key": "${OPENAI_API_KEY}",
         "model": "gpt-4o"

@@ -8,8 +8,8 @@ class Transformation(BaseModel):
     """
     Pydantic Model representing a single transformation
     """
-    final_col: str = Field(..., description="The name of the resulting column after transformation")
-    cols_to_process: List[str] = Field(..., description="List of source columns to process")
+    new_column_name: str = Field(..., description="The name of the resulting column after transformation")
+    columns_to_process: List[str] = Field(..., description="List of source columns to process")
     provider_transform: Literal[*TransformationFactory.PROVIDER_TRANSFORMATIONS] = Field(..., description="The transformation provider to use")
     params: Optional[Dict[str, Union[str, int, float, bool, None]]] = Field(None, description="Optional parameters for the transformation")
 

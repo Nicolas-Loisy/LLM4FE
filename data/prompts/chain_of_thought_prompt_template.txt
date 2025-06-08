@@ -11,8 +11,8 @@ Brief overview of original data, transformation strategy, and expected improveme
 New Columns
 For each transformation:
 
-final_col: Column name
-cols_to_process: Source columns
+new_column_name: Column name
+columns_to_process: Source columns
 provider_transform: Applied transformation (from available list only)
 params: Required parameters (empty if none)
 reasoning: Why this improves model performance

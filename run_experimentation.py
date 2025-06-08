@@ -4,6 +4,8 @@ if __name__ == "__main__":
     from src.orchestrator.orchestrator import Orchestrator, IterationType
     from src.utils.logger import init_logger
     import pprint
+    import matplotlib.pyplot as plt
+    import numpy as np
     
     logging_path = os.path.join(Path(__file__).parent, "data", "logs","logging.ini")
     init_logger(logger_path=str(logging_path))
@@ -13,14 +15,11 @@ if __name__ == "__main__":
     description = "This is a sample dataset with various features of health data and other, the target is the 'status' column."
 
     # Choose execution mode
-    # USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
-    USE_MULTIPLE_PROMPTS = False
+    USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
+    # USE_MULTIPLE_PROMPTS = False
     
     # Choose iteration type
-    ITERATION_TYPE = IterationType.FIXED  # Options: FIXED, SCORE_IMPROVEMENT, PERCENTAGE_IMPROVEMENT
-    # ITERATION_TYPE = IterationType.SCORE_IMPROVEMENT
-    # ITERATION_TYPE = IterationType.PERCENTAGE_IMPROVEMENT
-    
+    ITERATION_TYPE = IterationType.FIXED
     if USE_MULTIPLE_PROMPTS:
         print("\n" + "="*70)
         print("RUNNING MULTI-PROMPT ORCHESTRATION")
@@ -40,21 +39,159 @@ if __name__ == "__main__":
         print("="*50)
         print(f"Global Best Prompt: {result['global_best_prompt']}")
         print(f"Global Best Score: {result['global_best_score']:.4f}")
-        print(f"Prompts Compared: {result['prompts_compared']}")
+        print(f"Prompts Compared: {len(result['prompt_results'])}")
+        print(f"Iterations Summary Path: {result['iterations_summary_path']}")
         
         print(f"\nPrompt Comparison Summary:")
-        for prompt_name, summary in result['prompt_summary'].items():
+        for prompt_name, summary in result['summary'].items():
             print(f"  {prompt_name}:")
             print(f"    Best Score: {summary['best_score']:.4f}")
-            print(f"    Final Score: {summary['final_score']:.4f}")
-            print(f"    Transformations: {summary['transformations_count']}")
+            print(f"    Iterations: {summary['iterations']}")
         
-        print(f"\n\nBest Result Details:")
-        if result['global_best_result']:
-            best = result['global_best_result']
-            print(f"  Final Dataset: {best['final_dataset']}")
-            print(f"  Score History: {[f'{score:.4f}' for score in best['score_history']]}")
+        # print(f"\n\nBest Result Details:")
+        # if result['global_best_result']:
+        #     best = result['global_best_result']
+        #     print(f"  Final Dataset: {best['final_dataset']}")
+        #     print(f"  Best Dataset: {best['best_dataset']}")
+        #     print(f"  Best Score: {best['best_score']:.4f}")
+        #     print(f"  Total Iterations: {best['total_iterations']}")
         
+        # Add visualizations
+        print(f"\nGenerating visualizations...")
+        
+        def plot_score_evolution(result):
+            """Plot score evolution by iteration for each prompt type"""
+            plt.figure(figsize=(12, 8))
+            
+            colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+            
+            for i, (prompt_name, prompt_result) in enumerate(result['prompt_results'].items()):
+                if 'iteration_scores' in prompt_result and prompt_result['iteration_scores']:
+                    iterations = [score['iteration'] for score in prompt_result['iteration_scores']]
+                    scores = [score['score'] for score in prompt_result['iteration_scores']]
+                    
+                    color = colors[i % len(colors)]
+                    plt.plot(iterations, scores, 
+                            marker='o', linewidth=2.5, markersize=6,
+                            label=prompt_name, color=color)
+                    
+                    # Add best score marker
+                    best_score = max(scores)
+                    best_iteration = iterations[scores.index(best_score)]
+                    plt.scatter(best_iteration, best_score, 
+                              s=100, color=color, marker='*', 
+                              edgecolors='black', linewidth=1, zorder=5)
+            
+            plt.xlabel('Iteration', fontsize=12)
+            plt.ylabel('Score', fontsize=12)
+            plt.title('Score Evolution by Iteration for Each Prompt Type', fontsize=14, fontweight='bold')
+            plt.legend(loc='best', fontsize=10)
+            plt.grid(True, alpha=0.3)
+            
+            # Add annotations for best scores
+            for i, (prompt_name, prompt_result) in enumerate(result['prompt_results'].items()):
+                if 'iteration_scores' in prompt_result and prompt_result['iteration_scores']:
+                    scores = [score['score'] for score in prompt_result['iteration_scores']]
+                    iterations = [score['iteration'] for score in prompt_result['iteration_scores']]
+                    best_score = max(scores)
+                    best_iteration = iterations[scores.index(best_score)]
+                    
+                    plt.annotate(f'{best_score:.4f}', 
+                               xy=(best_iteration, best_score),
+                               xytext=(5, 5), textcoords='offset points',
+                               fontsize=9, ha='left')
+            
+            plt.tight_layout()
+            
+            # Save with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f'score_evolution_{timestamp}.png'
+            plt.savefig(filename, dpi=300, bbox_inches='tight', facecolor='white')
+            print(f"Score evolution graph saved as: {filename}")
+            plt.show()
+            
+            return filename
+        
+        def plot_best_scores(result):
+            """Plot best scores comparison per prompt"""
+            plt.figure(figsize=(10, 6))
+            
+            prompt_names = []
+            best_scores = []
+            
+            for prompt_name, summary in result['summary'].items():
+                prompt_names.append(prompt_name)
+                best_scores.append(summary['best_score'])
+            
+            x = np.arange(len(prompt_names))
+            
+            bars = plt.bar(x, best_scores, alpha=0.8, color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'])
+            
+            # Add value labels on bars
+            for bar, score in zip(bars, best_scores):
+                plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                        f'{score:.4f}', ha='center', va='bottom')
+            
+            plt.xlabel('Prompt Type', fontsize=12)
+            plt.ylabel('Best Score', fontsize=12)
+            plt.title('Best Scores Comparison by Prompt Type', fontsize=14, fontweight='bold')
+            plt.xticks(x, prompt_names, rotation=45, ha='right')
+            plt.grid(True, alpha=0.3, axis='y')
+            plt.tight_layout()
+            plt.savefig('best_scores_comparison.png', dpi=150, bbox_inches='tight')
+            plt.show()
+        
+        def plot_iteration_heatmap(result):
+            """Plot heatmap of scores per iteration per prompt"""
+            plt.figure(figsize=(12, 6))
+            
+            # Prepare data for heatmap
+            prompt_names = list(result['prompt_results'].keys())
+            max_iterations = max(len(result['prompt_results'][p]['iteration_scores']) 
+                               for p in prompt_names)
+            
+            heatmap_data = np.zeros((len(prompt_names), max_iterations))
+            
+            for i, prompt_name in enumerate(prompt_names):
+                scores = result['prompt_results'][prompt_name]['iteration_scores']
+                for j, score_data in enumerate(scores):
+                    heatmap_data[i, j] = score_data['score']
+            
+            plt.imshow(heatmap_data, cmap='viridis', aspect='auto')
+            plt.colorbar(label='Score')
+            plt.yticks(range(len(prompt_names)), prompt_names)
+            plt.xlabel('Iteration')
+            plt.ylabel('Prompt Type')
+            plt.title('Score Heatmap: Prompts vs Iterations')
+            
+            # Add text annotations
+            for i in range(len(prompt_names)):
+                for j in range(max_iterations):
+                    if heatmap_data[i, j] > 0:
+                        plt.text(j, i, f'{heatmap_data[i, j]:.3f}', 
+                               ha='center', va='center', fontsize=8, color='white')
+            
+            plt.tight_layout()
+            plt.savefig('iteration_heatmap.png', dpi=150, bbox_inches='tight')
+            plt.show()
+        
+        try:
+            from datetime import datetime
+            
+            score_evolution_file = plot_score_evolution(result)
+            plot_best_scores(result)
+            plot_iteration_heatmap(result)
+            
+            print(f"\nVisualization files generated:")
+            print(f"- {score_evolution_file}")
+            print("- best_scores_comparison.png")
+            print("- iteration_heatmap.png")
+            
+        except Exception as e:
+            print(f"Error generating visualizations: {e}")
+            import traceback
+            traceback.print_exc()
+
     else:
         print("\n" + "="*70)
         print("RUNNING SINGLE PROMPT ORCHESTRATION")
@@ -69,23 +206,7 @@ if __name__ == "__main__":
                 max_iterations=3,
                 iteration_type=ITERATION_TYPE
             )
-        elif ITERATION_TYPE == IterationType.SCORE_IMPROVEMENT:
-            result = orchestrator.run(
-                dataset_path="data/datasets/data.csv", 
-                dataset_description=description, 
-                target_column="target", 
-                max_iterations=10,
-                iteration_type=ITERATION_TYPE
-            )
-        elif ITERATION_TYPE == IterationType.PERCENTAGE_IMPROVEMENT:
-            result = orchestrator.run(
-                dataset_path="data/datasets/data.csv", 
-                dataset_description=description, 
-                target_column="target", 
-                max_iterations=10,
-                iteration_type=ITERATION_TYPE,
-                min_improvement_percentage=2.0  # Stop if improvement < 2%
-            )
+
         
         print("\n" + "="*50)
         print("ORCHESTRATION RESULTS")

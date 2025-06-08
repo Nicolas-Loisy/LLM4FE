@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 from typing import Optional, Dict, Any, List, Tuple
 from enum import Enum
+import os
 
 from src.feature_engineering.fe_pipeline import FeatureEngineeringPipeline
 from src.data_cleanning.data_cleaner import DataCleaner
@@ -77,6 +78,13 @@ class Orchestrator:
         """Main entry point to run the feature engineering pipeline."""
         logger.info(f"Starting LLM4FE orchestration with iteration type: {iteration_type.value}")
         
+        # Determine current prompt name for logging
+        current_prompt_name = "default_prompt"
+        for p_info in self.prompt_templates:
+            if p_info['template'] == self.prompt_template:
+                current_prompt_name = os.path.basename(p_info['name'])
+                break
+        
         if iteration_type == IterationType.FIXED:
             logger.info(f"Fixed iterations: {max_iterations}")
         elif iteration_type == IterationType.SCORE_IMPROVEMENT:
@@ -95,6 +103,7 @@ class Orchestrator:
             current_dataset_path = cleaned_dataset_path
             current_description = dataset_description
             all_transformations = []
+            iteration_scores = []  # Simple list of scores per iteration
             
             # Initialize with cleaned dataset score
             logger.info("Evaluating baseline cleaned dataset...")
@@ -105,6 +114,14 @@ class Orchestrator:
             self.best_dataset_path = current_dataset_path
             self.best_version = 0
             
+            # Record baseline
+            iteration_scores.append({
+                "iteration": 0,
+                "prompt": current_prompt_name,
+                "score": baseline_score,
+                "is_best": True
+            })
+            
             logger.info(f"Baseline score (cleaned): {baseline_score:.4f}")
             
             iteration_count = 0
@@ -113,7 +130,6 @@ class Orchestrator:
             while iteration_count < max_iterations:
                 iteration_count += 1
                 logger.info(f"Starting iteration {iteration_count}/{max_iterations}...")
-                logger.info(f"Using dataset: {current_dataset_path}")
                 
                 result = self._run_single_iteration(
                     current_dataset_path, 
@@ -125,6 +141,13 @@ class Orchestrator:
                 
                 if result is None:
                     logger.error(f"Iteration {iteration_count} failed")
+                    iteration_scores.append({
+                        "iteration": iteration_count,
+                        "prompt": current_prompt_name,
+                        "score": 0.0,
+                        "is_best": False,
+                        "status": "failed"
+                    })
                     break
                 
                 fe_dataset_path, cleaned_dataset_path, current_description, all_transformations, ml_score = result
@@ -132,18 +155,28 @@ class Orchestrator:
                 # Use feature-engineered dataset for next iteration
                 current_dataset_path = fe_dataset_path
                 
-                # Update best score tracking using cleaned dataset evaluation
+                # Update best score tracking
                 is_better, percentage_change = MachineLearningEstimator.get_best_score(ml_score, self.best_score, self.problem_type)
                 
                 if is_better:
                     logger.info(f"New best score found: {ml_score:.4f} (previous: {self.best_score:.4f}) - Improvement: {percentage_change:+.2f}%")
                     self.best_score = ml_score
-                    self.best_dataset_path = cleaned_dataset_path  # Store cleaned dataset as best for final result
+                    self.best_dataset_path = cleaned_dataset_path
                     self.best_version = iteration_count
                     consecutive_no_improvement = 0
                 else:
                     logger.info(f"Score {ml_score:.4f} did not improve best score {self.best_score:.4f} - Change: {percentage_change:+.2f}%")
                     consecutive_no_improvement += 1
+                
+                # Record iteration score
+                iteration_scores.append({
+                    "iteration": iteration_count,
+                    "prompt": current_prompt_name,
+                    "score": ml_score,
+                    "is_best": is_better,
+                    # "improvement": percentage_change if is_better else 0.0
+                    "improvement": percentage_change
+                })
                 
                 # Check stopping conditions
                 should_stop = self._should_stop_iteration(
@@ -153,17 +186,13 @@ class Orchestrator:
                 
                 if should_stop:
                     break
-                else:
-                    logger.info(f"Continuing with feature-engineered dataset for next iteration")
                 
                 logger.info(f"Iteration {iteration_count} completed successfully")
             
-            self.version_manager.save_global_summary()
             logger.info(f"Completed {iteration_count} iterations.")
             logger.info(f"Best score: {self.best_score:.4f} from version {self.best_version}")
-            logger.info(f"Next iteration dataset: {current_dataset_path}")
             
-            return self._build_final_result(all_transformations, current_dataset_path)
+            return self._build_final_result(all_transformations, current_dataset_path, iteration_scores)
             
         except Exception as e:
             logger.error(f"Orchestration failed: {str(e)}")
@@ -217,18 +246,29 @@ class Orchestrator:
         final_dataset = pd.read_csv(cleaned_output_path)
         
         # ML Evaluation (using cleaned dataset)
-        ml_score = self._evaluate_dataset(cleaned_output_path, target_column)['score']
+        ml_evaluation_results = self._evaluate_dataset(cleaned_output_path, target_column)
+        ml_score = ml_evaluation_results['score']
         logger.info(f"ML Score for iteration {iteration_number}: {ml_score:.4f}")
         
         # Update tracking
         updated_description = updated_description or description or ""
         all_transformations.extend(new_transformations)
         
-        # Save version information with ML score
-        self._save_version_info(
-            dataset_path, fe_output_path, cleaned_output_path,
-            new_transformations, all_transformations, updated_description,
-            final_dataset, target_column, ml_score
+        # Record iteration in version manager
+        current_prompt_name = "default_prompt"
+        for p_info in self.prompt_templates:
+            if p_info['template'] == self.prompt_template:
+                current_prompt_name = os.path.basename(p_info['name'])
+                break
+        
+        self.version_manager.record_iteration(
+            prompt_name=current_prompt_name,
+            iteration=iteration_number,
+            input_path=dataset_path,
+            fe_output_path=fe_output_path,
+            nb_transformations=len(new_transformations),
+            dataset_description=updated_description,
+            score=ml_score
         )
         
         return fe_output_path, cleaned_output_path, updated_description, all_transformations, ml_score
@@ -279,46 +319,15 @@ class Orchestrator:
             target_column=target_column
         )
 
-    def _save_version_info(
-        self,
-        input_path: str,
-        fe_output_path: str,
-        final_output_path: str,
-        new_transformations: List,
-        all_transformations: List,
-        description: str,
-        final_dataset: pd.DataFrame,
-        target_column: Optional[str],
-        ml_score: float
-    ):
-        """Save all version-related information."""
-        # Create version entry with ML score
-        version_entry = self.version_manager.create_version_entry(
-            input_path, fe_output_path, final_output_path,
-            len(new_transformations), len(all_transformations), description,
-            ml_score
-        )
-        
-        # Save configuration
-        config_path = self.version_manager.save_version_config(
-            all_transformations, description, input_path,
-            final_output_path, final_dataset, target_column
-        )
-        
-        # Update version entry with config path
-        version_entry["config_path"] = config_path
-
-    def _build_final_result(self, all_transformations: List, final_dataset_path: str) -> Dict[str, Any]:
+    def _build_final_result(self, all_transformations: List, final_dataset_path: str, iteration_scores: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Build the final result dictionary."""
         return {
-            'versions': self.version_manager.version_history,
             'final_dataset': final_dataset_path,
             'best_dataset': self.best_dataset_path,
-            'transformations_count': len(all_transformations),
             'best_score': self.best_score,
             'best_version': self.best_version,
-            'final_score': self.version_manager.version_history[-1].get('ml_score', 0.0) if self.version_manager.version_history else 0.0,
-            'score_history': [v.get('ml_score', 0.0) for v in self.version_manager.version_history]
+            'iteration_scores': iteration_scores,
+            'total_iterations': len([s for s in iteration_scores if s['iteration'] > 0])
         }
 
     def run_multiple_prompts(
@@ -330,33 +339,20 @@ class Orchestrator:
         iteration_type: IterationType = IterationType.FIXED,
         min_improvement_percentage: float = 1.0
     ) -> Dict[str, Any]:
-        """
-        Run the orchestration with multiple prompts and compare results.
-        
-        Args:
-            dataset_path: Path to the input dataset
-            dataset_description: Optional description of the dataset
-            target_column: Target column for ML evaluation
-            max_iterations: Maximum number of iterations to run
-            iteration_type: Type of iteration control (fixed, score improvement, percentage improvement)
-            min_improvement_percentage: Minimum improvement percentage for stopping criteria
-            
-        Returns:
-            Dictionary with results for each prompt and overall best results
-        """
+        """Run the orchestration with multiple prompts and compare results."""
         logger.info(f"Starting multi-prompt orchestration with {len(self.prompt_templates)} prompts...")
-        logger.info(f"Iteration type: {iteration_type.value}")
         
         if target_column is None:
             raise ValueError("target_column is required for ML evaluation")
         
         all_results = {}
+        all_iteration_scores = []  # Collect all scores from all prompts
         global_best_score = -float('inf')
         global_best_prompt = None
-        global_best_result = None
+        global_version_manager = VersionManager()  # Global version manager for all prompts
         
         for i, prompt_info in enumerate(self.prompt_templates):
-            prompt_name = prompt_info['name']
+            prompt_name = os.path.basename(prompt_info['name'])
             prompt_template = prompt_info['template']
             
             logger.info(f"\n{'='*60}")
@@ -380,57 +376,61 @@ class Orchestrator:
                     min_improvement_percentage=min_improvement_percentage
                 )
                 
-                # Store result with prompt info
-                result['prompt_name'] = prompt_name
-                result['prompt_template'] = prompt_template
-                all_results[prompt_name] = result
+                # Copy iteration data to global version manager
+                prompt_iterations = self.version_manager.get_all_iterations()
+                for iteration_data in prompt_iterations:
+                    global_version_manager.iteration_history.append(iteration_data)
                 
-                logger.info(f"Prompt '{prompt_name}' completed:")
-                logger.info(f"  Best Score: {result['best_score']:.4f}")
-                logger.info(f"  Final Score: {result['final_score']:.4f}")
-                logger.info(f"  Transformations: {result['transformations_count']}")
+                # Store simplified result
+                prompt_result = {
+                    'prompt_name': prompt_name,
+                    'best_score': result['best_score'],
+                    'iteration_scores': result['iteration_scores'],
+                    'total_iterations': result['total_iterations']
+                }
+                all_results[prompt_name] = prompt_result
+                
+                # Add to global iteration scores
+                all_iteration_scores.extend(result['iteration_scores'])
+                
+                logger.info(f"Prompt '{prompt_name}' completed: Best Score {result['best_score']:.4f}")
                 
                 # Track global best
                 if result['best_score'] > global_best_score:
                     global_best_score = result['best_score']
                     global_best_prompt = prompt_name
-                    global_best_result = result
-                    logger.info(f"New global best score: {global_best_score:.4f} with prompt '{global_best_prompt}'")
                 
             except Exception as e:
                 logger.error(f"Error running with prompt '{prompt_name}': {str(e)}")
                 all_results[prompt_name] = {
-                    'error': str(e),
                     'prompt_name': prompt_name,
                     'best_score': 0.0,
-                    'final_score': 0.0
+                    'iteration_scores': [],
+                    'total_iterations': 0,
+                    'error': str(e)
                 }
         
-        # Build comprehensive results
+        # Save global iterations summary
+        summary_path = global_version_manager.save_iterations_summary()
+        
+        # Build final results
         final_results = {
-            'prompt_results': all_results,
-            'global_best_prompt': global_best_prompt,
             'global_best_score': global_best_score,
-            'global_best_result': global_best_result,
-            'prompts_compared': len(self.prompt_templates),
-            'prompt_summary': {
-                name: {
-                    'best_score': result.get('best_score', 0.0),
-                    'final_score': result.get('final_score', 0.0),
-                    'transformations_count': result.get('transformations_count', 0)
-                }
+            'global_best_prompt': global_best_prompt,
+            'all_iteration_scores': all_iteration_scores,
+            'prompt_results': all_results,
+            'summary': {
+                name: {'best_score': result['best_score'], 'iterations': result['total_iterations']}
                 for name, result in all_results.items()
-            }
+            },
+            'iterations_summary_path': summary_path
         }
         
-        logger.info(f"\n{'='*60}")
-        logger.info("MULTI-PROMPT ORCHESTRATION COMPLETED")
-        logger.info(f"{'='*60}")
-        logger.info(f"Global Best Prompt: {global_best_prompt}")
-        logger.info(f"Global Best Score: {global_best_score:.4f}")
+        logger.info(f"\nGlobal Best: {global_best_prompt} with score {global_best_score:.4f}")
+        logger.info(f"Iterations summary saved to: {summary_path}")
         
         return final_results
-    
+
     def _reset_state(self):
         """Reset orchestrator state for new prompt execution."""
         self.best_score = -float('inf')

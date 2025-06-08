@@ -201,7 +201,7 @@ class FeatureEngineeringPipeline:
         
         for provider, description in info_transforms.items():
             available_transforms.append(f"- {provider}: {description}")
-        transforms_text = "Available transformations with descriptions:\n" + "\n".join(available_transforms)
+        transforms_text = "Available transformations with descriptions:\n" + "\n\n============\n".join(available_transforms)
         
         return transforms_text
 

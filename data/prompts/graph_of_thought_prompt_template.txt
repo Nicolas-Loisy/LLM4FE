@@ -20,8 +20,8 @@ Brief overview: original data + transformation strategy + expected improvements.
 New Columns
 For each transformation (ranked by multi-node scores):
 
-final_col: Column name
-cols_to_process: Source columns
+new_column_name: Column name
+columns_to_process: Source columns
 provider_transform: Exact name from available list
 params: Parameters (empty if none)
 reasoning: Multi-path justification

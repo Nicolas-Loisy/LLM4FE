@@ -14,34 +14,29 @@ class DeleteColumnTransform(BaseTransformation):
     PROVIDER = "delete_column"
     DESCRIPTION = """
     This transformation deletes one specified column from the dataframe.
-
-    Input:
-        - source_columns: The name of the column to delete.
-        
-    Output:
-        - The dataframe without the specified column.
-        
-    Param:
+    - columns_to_process: The name of the column to delete. Must be a list containing exactly one column name.
+    - params:
         - No additional parameters required.
+    Output: The dataframe without the specified column.
     """
 
-    def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
+    def __init__(self, new_column_name: str, columns_to_process: List[str], param: Optional[Dict[str, Any]] = None):
         """
         Initialize the delete column transformation.
         
         Args:
             new_column_name: Not used here but kept for compatibility.
-            source_columns: List containing exactly one column name to delete.
+            columns_to_process: List containing exactly one column name to delete.
             param: No parameters needed.
         """
-        super().__init__(new_column_name, source_columns, param)
+        super().__init__(new_column_name, columns_to_process, param)
         self.valid = True
 
-        if not isinstance(source_columns, list):
-            logger.error(f"[{self.PROVIDER}] 'source_columns' must be a list.")
+        if not isinstance(columns_to_process, list):
+            logger.error(f"[{self.PROVIDER}] 'columns_to_process' must be a list.")
             self.valid = False
-        if len(source_columns) != 1:
-            logger.error(f"[{self.PROVIDER}] Exactly one source column must be provided, got {len(source_columns)}.")
+        if len(columns_to_process) != 1:
+            logger.error(f"[{self.PROVIDER}] Exactly one source column must be provided, got {len(columns_to_process)}.")
             self.valid = False
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -60,7 +55,7 @@ class DeleteColumnTransform(BaseTransformation):
             return result_df
 
         try : 
-            col_to_delete = self.source_columns[0]
+            col_to_delete = self.columns_to_process[0]
 
             if col_to_delete not in df.columns:
                 logger.error(f"[{self.PROVIDER}] Column '{col_to_delete}' not found in dataframe.")

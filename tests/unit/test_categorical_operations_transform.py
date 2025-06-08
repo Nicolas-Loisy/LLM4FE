@@ -7,7 +7,7 @@ def test_one_hot_encoding():
     df = pd.DataFrame({"color": ["red", "blue", "green"]})
     transform = CategoricalOperationsTransform(
         new_column_name="encoded",
-        source_columns=["color"],
+        columns_to_process=["color"],
         param={"operation": "encodage_oneHot"}
     )
     result = transform.transform(df)
@@ -19,7 +19,7 @@ def test_label_encoding():
     df = pd.DataFrame({"fruit": ["apple", "banana", "apple", "orange"]})
     transform = CategoricalOperationsTransform(
         new_column_name="encoded_fruit",
-        source_columns=["fruit"],
+        columns_to_process=["fruit"],
         param={"operation": "label_encoding"}
     )
     result = transform.transform(df)
@@ -33,7 +33,7 @@ def test_target_encoding():
     })
     transform = CategoricalOperationsTransform(
         new_column_name="encoded_target",
-        source_columns=["category"],
+        columns_to_process=["category"],
         param={"operation": "target_encoding"}
     )
     result = transform.transform(df)
@@ -44,7 +44,7 @@ def test_invalid_param_structure():
     with pytest.raises(ValueError):
         CategoricalOperationsTransform(
             new_column_name="x",
-            source_columns=["col"],
+            columns_to_process=["col"],
             param=None
         )
 
@@ -52,6 +52,6 @@ def test_unsupported_operation():
     with pytest.raises(ValueError):
         CategoricalOperationsTransform(
             new_column_name="x",
-            source_columns=["col"],
+            columns_to_process=["col"],
             param={"operation": "unknown"}
         )
