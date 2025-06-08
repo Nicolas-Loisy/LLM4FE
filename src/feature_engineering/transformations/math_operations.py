@@ -45,7 +45,7 @@ class MathOperationsTransform(BaseTransformation):
         if not isinstance(param, dict) or "operation" not in param:
             raise ValueError("Invalid param structure. Expected a dictionary with an 'operation' key.")
         
-        if param["operation"] not in ["multiply", "sum", "log1p", "sqrt", "square", "mean", "diff", "ratio"]:
+        if param["operation"] not in ["multiply", "sum", "log1p", "sqrt", "square", "mean", "difference", "ratio"]:
             raise ValueError(f"Unsupported operation: {param['operation']}")
     
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:

@@ -3,7 +3,6 @@ if __name__ == "__main__":
     from pathlib import Path
     from src.orchestrator.orchestrator import Orchestrator, IterationType
     from src.utils.logger import init_logger
-    import pprint
     import matplotlib.pyplot as plt
     import numpy as np
     
@@ -12,7 +11,14 @@ if __name__ == "__main__":
 
     orchestrator = Orchestrator(config_path="data/configs/config.json")
 
-    description = "This is a sample dataset with various features of health data and other, the target is the 'status' column."
+    # dataset_path = "data/datasets/data.csv"
+    # description = "This is a sample dataset with various features of health data and other, the target is the 'status' column."
+
+    dataset_path = "data/datasets/Tuberculosis_Dataset.csv"
+    description = "This dataset includes 400,000 records with 22 variables that capture demographic, health, and socioeconomic factors influencing tuberculosis incidence across 70 countries. The data is designed to resemble real-world patterns observed in tuberculosis prevalence and healthcare indicators. It can be used for tasks such as descriptive analysis, machine learning, and public health research. Columns: Country:The name of the country (70 unique values)., Year:The year of data collection (2000–2023)., TB_Incidence_Rate:Tuberculosis incidence rate per 100,000 population., Population:The total population of the country (10,000 to 50,000,000)., HIV_Prevalence:Percentage of the population living with HIV., Treatment_Success_Rate:Percentage of TB patients successfully treated., Mortality_Rate:TB-related deaths per 100,000 population., Urban_Population_Percentage:Percentage of the population living in urban areas., Smoking_Rate:Percentage of the population that smokes., Alcohol_Consumption:Average annual alcohol consumption in liters per capita., Healthcare_Expenditure_Per_Capita:Annual healthcare spending per capita in USD., Primary_Healthcare_Access:Percentage of the population with access to primary healthcare services., Age_Group:Age group of the population (0-14, 15-24, etc.)., Gender:Gender of individuals (Male or Female)., HIV_CoInfection_Rate:Percentage of TB patients co-infected with HIV., BCG_Vaccination_Coverage:Percentage of infants receiving the BCG vaccine., Multidrug_Resistance_Rate:Percentage of TB cases resistant to multiple drugs., Unemployment_Rate:Percentage of the working-age population unemployed., GDP_Per_Capita:Gross Domestic Product per capita in USD., Life_Expectancy:Average life expectancy in years., TB_Screening_Coverage:Percentage of the population covered by TB screening programs., Rural_Population_Percentage:Percentage of the population living in rural areas."
+    target = "TB_Incidence_Rate"
+
+
 
     # Choose execution mode
     USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
@@ -26,9 +32,9 @@ if __name__ == "__main__":
         print("="*70)
         
         result = orchestrator.run_multiple_prompts(
-            dataset_path="data/datasets/data.csv", 
+            dataset_path=dataset_path, 
             dataset_description=description, 
-            target_column="target", 
+            target_column=target, 
             max_iterations=5,
             iteration_type=ITERATION_TYPE,
             min_improvement_percentage=1.0  # Only used for PERCENTAGE_IMPROVEMENT

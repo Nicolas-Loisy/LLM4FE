@@ -21,7 +21,7 @@ class CategoricalOperationsTransform(BaseTransformation):
     - new_column_name: The name of the output column after applying the transformation.
     - params:
         - operation: The type of categorical operation to apply. Supported operations are:
-            "encodage_oneHot", "label_encoding", "target_encoding"
+            "encodage_oneHot", "label_encoding"
     """
 
     def __init__(self, new_column_name: str, columns_to_process: List[str], param: Optional[Dict[str, Any]] = None):
@@ -30,7 +30,7 @@ class CategoricalOperationsTransform(BaseTransformation):
         Args:
             new_column_name: The name of the output column after transformation
             columns_to_process: List of column names to process
-            param: Dictionary containing the operation type ('encodage_oneHot', 'label_encoding', 'target_encoding')
+            param: Dictionary containing the operation type ('encodage_oneHot', 'label_encoding')
         """
         super().__init__(new_column_name, columns_to_process, param)
 
@@ -38,7 +38,7 @@ class CategoricalOperationsTransform(BaseTransformation):
         if not isinstance(param, dict) or "operation" not in param:
             raise ValueError("Invalid param structure. Expected a dictionary with an 'operation' key.")
 
-        if param["operation"] not in ["encodage_oneHot", "label_encoding", "target_encoding"]:
+        if param["operation"] not in ["encodage_oneHot", "label_encoding"]:
             raise ValueError(f"Unsupported operation: {param['operation']}")
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -76,18 +76,22 @@ class CategoricalOperationsTransform(BaseTransformation):
                     logger.error(f"Error during label encoding for column '{col}': {str(e)}")
                     result_df[self.new_column_name] = np.nan
 
-        elif self.param["operation"] == 'target_encoding':
-            target_column = df.columns[-1] # On suppose que la derniere colonne est la colonne target
-            for col in self.columns_to_process:
-                try:
-                    result_df[self.new_column_name] = df.apply(
-                        lambda row: df.groupby(col)[target_column].mean().get(row[col], np.nan)
-                        if pd.notnull(row[col]) and pd.notnull(row[target_column])
-                        else np.nan,
-                        axis=1
-                    )
-                except Exception as e:
-                    logger.error(f"Error during target encoding for column '{col}': {str(e)}")
-                    result_df[self.new_column_name] = np.nan
+        # elif self.param["operation"] == 'target_encoding':
+        # TODO : To fix, target column should not be supposed and the description should explained target_encoding
+        #     target_column = df.columns[-1] # On suppose que la derniere colonne est la colonne target
+        #     for col in self.columns_to_process:
+        #         try:
+        #             # Calculate mean target values for each category
+        #             category_means = df.groupby(col)[target_column].mean()
+                    
+        #             # Map the means to the original column values
+        #             result_df[self.new_column_name] = df[col].map(category_means)
+                    
+        #             # Handle cases where original column has NaN values
+        #             result_df.loc[df[col].isnull(), self.new_column_name] = np.nan
+                    
+        #         except Exception as e:
+        #             logger.error(f"Error during target encoding for column '{col}': {str(e)}")
+        #             result_df[self.new_column_name] = np.nan
 
         return result_df

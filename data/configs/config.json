@@ -10,7 +10,8 @@
     "llm": {
         "provider": "OpenAi",
         "api_key": "${OPENAI_API_KEY}",
-        "model": "gpt-4o"
+        "_model": "gpt-4o",
+        "model": "gpt-4.1-2025-04-14"
     },
     "prompt_file": "prompts/intuitive_prompt_template.txt",
     "prompt_files": [
