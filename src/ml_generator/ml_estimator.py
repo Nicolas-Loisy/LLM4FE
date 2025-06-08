@@ -159,9 +159,10 @@ class MachineLearningEstimator:
             problem_type: Type of ML problem ('classification' or 'regression').
         
         Returns:
-            Tuple containing (is_better: bool, percentage_change: float)
-            - For classification (F1-score): positive percentage = improvement
-            - For regression (RMSE): negative percentage = improvement (lower RMSE)
+            Tuple containing (is_better: bool, normalized_percentage_change: float)
+            - Normalized percentage: always positive when there's improvement, negative when worse
+            - For classification (F1-score): higher score = positive percentage
+            - For regression (RMSE): lower score = positive percentage (inverted logic)
             True if the new score is better, False otherwise.
         """
         if current_score is None:
@@ -174,25 +175,26 @@ class MachineLearningEstimator:
         
         if old_score == 0:
             logger.warning("Old score is zero, cannot compare.")
-            percentage_change = float('inf') if current_score > 0 else 0.0
-        else:
-            percentage_change = ((current_score - old_score) / abs(old_score)) * 100
+            return current_score > 0, float('inf') if current_score > 0 else 0.0
         
+        percentage_change = ((current_score - old_score) / abs(old_score)) * 100
 
         if problem_type == CLASSIFICATION:
             # For F1-score, higher is better
             is_better = current_score >= old_score
+            normalized_percentage = percentage_change
             comparison_symbol = ">=" if is_better else "<"
         else:
             # For RMSE, lower is better
             is_better = current_score <= old_score
+            normalized_percentage = -percentage_change # Reverse the percentage to get a normal percentage (now a positive percentage is an improvement)
             comparison_symbol = "<=" if is_better else ">"
         
         logger.info(f"Score comparison: {current_score:.4f} {comparison_symbol} {old_score:.4f} "
-                    f"Percentage change: {percentage_change:+.2f}% - "
+                    f"Normalized improvement: {normalized_percentage:+.2f}% - "
                     f"({'Better/Same' if is_better else 'Worse'})")
         
-        return is_better, percentage_change
+        return is_better, normalized_percentage
         
     def run(self, test_size: float = 0.2) -> Dict[str, Any]:
         """
