@@ -13,8 +13,8 @@ if __name__ == "__main__":
     description = "This is a sample dataset with various features of health data and other, the target is the 'status' column."
 
     # Choose execution mode
-    USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
-    # USE_MULTIPLE_PROMPTS = False
+    # USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
+    USE_MULTIPLE_PROMPTS = False
     
     # Choose iteration type
     ITERATION_TYPE = IterationType.FIXED  # Options: FIXED, SCORE_IMPROVEMENT, PERCENTAGE_IMPROVEMENT
@@ -94,17 +94,16 @@ if __name__ == "__main__":
         print("="*50)
         print(f"Iteration Type: {ITERATION_TYPE.value}")
         print(f"Final Dataset: {result['final_dataset']}")
-        print(f"Final Score: {result['final_score']:.4f}")
         print(f"Best Dataset: {result['best_dataset']}")
         print(f"Best Score: {result['best_score']:.4f} (Version {result['best_version']})")
-        print(f"Total Transformations: {result['transformations_count']}")
-        print(f"Score History: {[f'{score:.4f}' for score in result['score_history']]}")
+        print(f"Total Transformations: {result['total_iterations']}")
+        print("Score History:", [f"{score_dict['score']:.4f}" for score_dict in result['iteration_scores']])
         
         print(f"\nScore Evolution:")
-        print(f"  Baseline (cleaned): {result['score_history'][0]:.4f}")
-        for i, score in enumerate(result['score_history'][1:], 1):
-            marker = " ★" if score == result['best_score'] else ""
-            print(f"  Version {i}: {score:.4f}{marker}")
+        print(f"  Baseline (cleaned): {result['iteration_scores'][0]['score']:.4f}")
+        for i, score_dict in enumerate(result['iteration_scores'][1:], 1):
+            marker = " ★" if score_dict['score'] == result['best_score'] else ""
+            print(f"  Version {i}: {score_dict['score']:.4f}{marker}")
     
     # print("\nDetailed Results:")
     # pprint.pprint(result)

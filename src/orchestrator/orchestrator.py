@@ -39,7 +39,7 @@ class Orchestrator:
         self.problem_type = None  # Track ML problem type
         
         # Load the default prompt template
-        self.prompt_template = self.config.get_file_content("prompt_file")
+        self.prompt_template = self.config.get_file_content("prompt_file", "")
         if not self.prompt_template:
             raise ValueError("Failed to load prompt template from config")
         logger.info("Default prompt template loaded successfully")
