@@ -6,8 +6,8 @@ Dataset Description: Provide a brief description of the original dataset and the
 
 New Columns: For each new column, include:
 
-final_col: Explicit name of the created column.
-cols_to_process: Original columns used to generate the new one.
+new_column_name: Explicit name of the created column.
+columns_to_process: Original columns used to generate the new one.
 provider_transform: Transformation applied (from those available).
 params: Parameters necessary for the transformation (leave empty if none).
 Column Removal: Propose column removals last, ensuring not to remove raw variables, only transformed ones.

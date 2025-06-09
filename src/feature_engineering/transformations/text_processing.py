@@ -15,31 +15,26 @@ class TextProcessingTransform(BaseTransformation):
     PROVIDER = "text_processing"
     DESCRIPTION = """
     This transformation applies text-based processing to text columns.
-
-    Input:
-        - source_columns: List of column names to process (only one column supported).
-        
-    Output:
-        - new_column_name: Name of the output column or prefix for multiple outputs.
-        
-    Param:
+    - columns_to_process: List of column names to process (only one column supported).
+    - new_column_name: Name of the output column or prefix for multiple outputs.
+    - params:
         - operation: The type of textual operation to apply. Supported operations are:
             - 'length': Number of characters in the text.
             - 'word_count': Number of words in the text.
             - 'keyword': Detect presence of a keyword (param["keyword"])
-            - 'tfidf': Apply TF-IDF encoding (param["max_features"] optionnel)
+            - 'tfidf': Apply TF-IDF encoding (param["max_features"] optional)
     """
 
-    def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
+    def __init__(self, new_column_name: str, columns_to_process: List[str], param: Optional[Dict[str, Any]] = None):
         """
         Initialize the text processing transformation.
         
         Args:
             new_column_name: The name of the output column after transformation
-            source_columns: List of column names to process
+            columns_to_process: List of column names to process for text operations (only one column supported).
             param: Parameters for the encoding transformation, like 'onehot', 'label', 'ordinal'
         """
-        super().__init__(new_column_name, source_columns, param)
+        super().__init__(new_column_name, columns_to_process, param)
         self.valid = True
 
         valid_operations = {'length', 'word_count', 'keyword', 'tfidf'}
@@ -50,8 +45,8 @@ class TextProcessingTransform(BaseTransformation):
         elif param["operation"] not in valid_operations:
             logger.error(f"[{self.PROVIDER}] Unsupported operation '{param['operation']}'. Must be one of {valid_operations}.")
             self.valid = False
-        elif len(source_columns) != 1:
-            logger.error(f"[{self.PROVIDER}] Only one source column supported. Got {len(source_columns)}.")
+        elif len(columns_to_process) != 1:
+            logger.error(f"[{self.PROVIDER}] Only one source column supported. Got {len(columns_to_process)}.")
             self.valid = False
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -70,11 +65,11 @@ class TextProcessingTransform(BaseTransformation):
             return result_df
         
         try :
-            if len(self.source_columns) != 1:
+            if len(self.columns_to_process) != 1:
                 logger.error(f"[{self.PROVIDER}] Supports only one source column.")
                 return result_df
             
-            col = self.source_columns[0]
+            col = self.columns_to_process[0]
             if col not in df.columns:
                 logger.error(f"[{self.PROVIDER}] Column '{col}' not found in dataframe.")
                 return result_df

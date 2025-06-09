@@ -5,8 +5,8 @@ Dataset Description
 Brief overview and transformation strategy.
 New Columns
 
-final_col: Column name
-cols_to_process: Source columns
+new_column_name: Column name
+columns_to_process: Source columns
 provider_transform: Transform from available list
 params: Parameters (empty if none)
 reasoning: Impact justification

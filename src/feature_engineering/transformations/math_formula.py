@@ -3,226 +3,191 @@ import numpy as np
 import logging
 from typing import Dict, Any, Optional, List
 import re
-
+import difflib
 from src.feature_engineering.transformations.base_transformation import BaseTransformation
 
 logger = logging.getLogger(__name__)
 
 class MathFormulaTransform(BaseTransformation):
     """
-    Applies mathematical formulas to numeric columns using string expressions.
+    Applies a mathematical formula to numeric columns using a Python expression evaluated vectorially on the DataFrame.
     """
 
     PROVIDER = "math_formula"
     DESCRIPTION = """
-    This transformation applies mathematical formulas to numeric columns using string expressions.
-    The formula is evaluated in a secure namespace containing column data and mathematical functions.
+    Applies a mathematical formula to one or more numeric columns using a Python expression evaluated vectorially on the DataFrame.
 
-    Input:
-        - source_columns: List of column names to use as variables in the formula.
-        
-    Output:
-        - new_column_name: The name of the output column after applying the transformation.
-        
-    Param:
-        - formula: A string containing the mathematical formula to apply.
-                  Column names should be referenced by their exact names from source_columns in the formula.
-                  DO NOT use generic references like 'col1', 'col2' - use the actual column names.
-                  
-                  Available operations and functions:
-                  Basic operators: +, -, *, /, ** (power)
-                  
-                  Mathematical functions:
-                  - sqrt(x): Square root
-                  - log(x): Natural logarithm
-                  - log10(x): Base-10 logarithm  
-                  - log1p(x): log(1+x)
-                  - exp(x): Exponential function
-                  - abs(x): Absolute value
-                  
-                  Trigonometric functions:
-                  - sin(x), cos(x), tan(x): Basic trigonometric functions
-                  - asin(x), acos(x), atan(x): Inverse trigonometric functions
-                  - sinh(x), cosh(x), tanh(x): Hyperbolic functions
-                  
-                  Rounding functions:
-                  - floor(x): Round down to nearest integer
-                  - ceil(x): Round up to nearest integer
-                  - round(x): Round to nearest integer
-                  
-                  Array functions:
-                  - max(a, b): Element-wise maximum
-                  - min(a, b): Element-wise minimum
-                  
-                  Constants:
-                  - pi: π (3.14159...)
-                  - e: Euler's number (2.71828...)
-                  - nan: Not a Number
-                  - inf: Infinity
-                  
-                  Example formulas (assuming source_columns=['price', 'sqft', 'rooms']):
-                  - "price**2 + 3*sqft - log(rooms)"
-                  - "sqrt(price**2 + sqft**2)"  # Euclidean distance
-                  - "sin(pi * price / 180)"      # Convert degrees to radians and get sine
-                  - "max(price, sqft) / min(price, sqft)"  # Ratio of max to min
-                  
-        - safe_mode: (optional, default=True) If True, validates formula for security.
-                    The formula is evaluated in a restricted namespace that only contains
-                    the specified column data and mathematical functions. This prevents
-                    access to potentially dangerous Python functions or modules.
-        
-    When safe_mode=True (recommended), the namespace is restricted to prevent security risks.
-    The __builtins__ are disabled, and only the specified mathematical functions are available.
+    - columns_to_process: list of exact column names to use as variables in the formula.
+    - new_column_name: name of the output column.
+    - param:
+        - formula: a Python expression evaluated vectorially.
+        Allowed functions: +, -, *, /, **, np.sqrt, np.log, np.log10, np.exp, np.abs, np.sin, np.cos, np.tan,
+        np.arcsin, np.arccos, np.arctan, np.sinh, np.cosh, np.tanh, np.floor, np.ceil, np.round,
+        np.maximum, np.minimum, np.pi, np.e, np.inf, np.nan, np.where
+        Example: "np.where(column1 != 0, column2 / column1, 0)"
+
+    IMPORTANT:
+    - The formula must use **only the exact column names** from `columns_to_process` as variables.
+    - For mathematical functions, always use the 'np.' prefix, e.g., 'np.sqrt(column_name)'.
+    - Do NOT create intermediate variables or aliases (like 'sqrt_column_name').
+    - The expression is evaluated vectorially on the entire DataFrame.
     """
 
-    def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
-        """
-        Initialize the math formula transformation.
-        
-        Args:
-            new_column_name: The name of the output column after transformation
-            source_columns: List of column names to use as variables in the formula
-            param: Dictionary containing:
-                - formula: Mathematical formula as string
-                - safe_mode: (optional) Security validation flag
-        """
-        super().__init__(new_column_name, source_columns, param)
-        
-        # Validate param structure
+    def __init__(self, new_column_name: str, columns_to_process: List[str], param: Optional[Dict[str, Any]] = None):
+        super().__init__(new_column_name, columns_to_process, param)
+
         if not isinstance(param, dict) or "formula" not in param:
             raise ValueError("Invalid param structure. Expected a dictionary with a 'formula' key.")
-        
-        self.formula = param["formula"]
-        self.safe_mode = param.get("safe_mode", True)
-        
-        # Validate formula safety if safe_mode is enabled
+
+        self.safe_mode = param.get("safe_mode", False)
+        self.allow_autocorrect = param.get("autocorrect", True)
+
+        original_formula = param["formula"]
+        processed_formula = self.replace_astype_int(original_formula)
+
+        if self.allow_autocorrect:
+            self.formula = self.autocorrect_formula_columns(self.columns_to_process, processed_formula)
+        else:
+            self.formula = processed_formula
+
         if self.safe_mode:
             self._validate_formula_safety()
-    
+
+    @staticmethod
+    def replace_astype_int(formula: str) -> str:
+        """
+        Remplace les expressions du type `(expr).astype(int)` par `np.where(expr, 1, 0)`
+        """
+        pattern = r'\(([^()]+?)\)\.astype\s*\(\s*(int|["\']int["\'])\s*\)'
+        return re.sub(pattern, r'np.where(\1, 1, 0)', formula)
+
+    def autocorrect_formula_columns(self, columns_to_process: List[str], formula: str) -> str:
+        """
+        Corrige automatiquement les noms de colonnes mal orthographiés dans la formule.
+        """
+        tokens = set(re.findall(r'[A-Za-z_][A-Za-z0-9_]*', formula))
+
+        np_funcs = {
+            'np', 'sqrt', 'log', 'log10', 'exp', 'abs', 'sin', 'cos', 'tan',
+            'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'floor', 'ceil',
+            'round', 'maximum', 'minimum', 'pi', 'e', 'inf', 'nan', 'where'
+        }
+        python_keywords = {
+            'if', 'else', 'for', 'and', 'or', 'not', 'in', 'True', 'False', 'None'
+        }
+
+        candidates = [tok for tok in tokens
+                      if tok not in columns_to_process
+                      and tok not in np_funcs
+                      and tok not in python_keywords
+                      and not tok.isdigit()]
+
+        corrected_formula = formula
+        missing_columns = []
+
+        for candidate in candidates:
+            matches = difflib.get_close_matches(candidate, columns_to_process, n=1, cutoff=0.6)
+            if matches:
+                corrected_name = matches[0]
+                corrected_formula = re.sub(rf'\b{re.escape(candidate)}\b', corrected_name, corrected_formula)
+                logger.info(f"Autocorrected column name: '{candidate}' -> '{corrected_name}'")
+            else:
+                if candidate.isalpha() or '_' in candidate:
+                    missing_columns.append(candidate)
+
+        if missing_columns:
+            logger.warning(f"Formula references columns not in columns_to_process: {missing_columns}. "
+                           f"Available columns: {columns_to_process}. "
+                           f"Consider adding these to columns_to_process or updating the formula.")
+
+        if corrected_formula != formula:
+            logger.info(f"Formula corrected from:\n  {formula}\nto:\n  {corrected_formula}")
+
+        return corrected_formula
+
     def _validate_formula_safety(self):
-        """
-        Validate that the formula contains only safe mathematical operations.
-        """
-        # List of allowed functions and operators
-        allowed_functions = [
-            'sqrt', 'log', 'log10', 'log1p', 'exp', 'abs', 'sin', 'cos', 'tan',
-            'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'floor', 'ceil',
-            'round', 'max', 'min', 'sum', 'mean'
+        allowed_tokens = [
+            'np.sqrt', 'np.log', 'np.log10', 'np.exp', 'np.abs', 'np.sin', 'np.cos', 'np.tan',
+            'np.arcsin', 'np.arccos', 'np.arctan', 'np.sinh', 'np.cosh', 'np.tanh', 'np.floor', 'np.ceil',
+            'np.round', 'np.maximum', 'np.minimum', 'np.pi', 'np.e', 'np.inf', 'np.nan', 'np.where',
+            '+', '-', '*', '/', '**', '(', ')', ',', '.', ' '
         ]
-        
-        # Remove allowed column names from formula for validation
+
         temp_formula = self.formula
-        for col in self.source_columns:
+        for col in self.columns_to_process:
             temp_formula = temp_formula.replace(col, 'X')
-        
-        # Remove numbers, operators, parentheses, and spaces
-        temp_formula = re.sub(r'[0-9\+\-\*\/\(\)\s\.\,]', '', temp_formula)
-        temp_formula = re.sub(r'\*\*', '', temp_formula)  # Remove power operator
-        
-        # Remove allowed functions
-        for func in allowed_functions:
-            temp_formula = temp_formula.replace(func, '')
-        
-        # Remove variable placeholder
-        temp_formula = temp_formula.replace('X', '')
-        
-        # If anything remains, it's potentially unsafe
+
+        for token in allowed_tokens:
+            temp_formula = temp_formula.replace(token, '')
+
+        temp_formula = re.sub(r'[0-9]', '', temp_formula)
+
         if temp_formula.strip():
             raise ValueError(f"Formula contains potentially unsafe elements: {temp_formula}")
-    
+
     def _prepare_namespace(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Prepare the namespace for formula evaluation with column data and safe functions.
-        """
-        # Namespace Explanation:
-        # The formula is evaluated using Python's eval() function within a controlled namespace.
-        # This namespace contains:
-        # 1. Column data: Each column in source_columns becomes a variable in the formula
-        # 2. Mathematical functions: Safe numpy functions for mathematical operations
-        # 3. Constants: Mathematical constants like pi and e
         namespace = {}
-        
-        # Add column data
-        for col in self.source_columns:
+
+        formula_tokens = set(re.findall(r'[A-Za-z_][A-Za-z0-9_]*', self.formula))
+        np_funcs = {
+            'np', 'sqrt', 'log', 'log10', 'exp', 'abs', 'sin', 'cos', 'tan',
+            'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'floor', 'ceil',
+            'round', 'maximum', 'minimum', 'pi', 'e', 'inf', 'nan', 'where'
+        }
+        python_keywords = {
+            'if', 'else', 'for', 'and', 'or', 'not', 'in', 'True', 'False', 'None'
+        }
+
+        potential_columns = [tok for tok in formula_tokens
+                             if tok not in np_funcs
+                             and tok not in python_keywords
+                             and not tok.isdigit()]
+
+        for col in potential_columns:
             if col in df.columns:
                 namespace[col] = df[col]
-            else:
-                logger.warning(f"Column '{col}' not found in DataFrame. Setting to NaN.")
+            elif col in self.columns_to_process:
+                logger.warning(f"Column '{col}' from columns_to_process not found in DataFrame. Filling with NaN.")
                 namespace[col] = pd.Series([np.nan] * len(df))
-        
-        # Add safe mathematical functions
-        namespace.update({
-            'sqrt': np.sqrt,
-            'log': np.log,
-            'log10': np.log10,
-            'log1p': np.log1p,
-            'exp': np.exp,
-            'abs': np.abs,
-            'sin': np.sin,
-            'cos': np.cos,
-            'tan': np.tan,
-            'asin': np.arcsin,
-            'acos': np.arccos,
-            'atan': np.arctan,
-            'sinh': np.sinh,
-            'cosh': np.cosh,
-            'tanh': np.tanh,
-            'floor': np.floor,
-            'ceil': np.ceil,
-            'round': np.round,
-            'max': np.maximum,
-            'min': np.minimum,
-            'pi': np.pi,
-            'e': np.e,
-            'nan': np.nan,
-            'inf': np.inf
-        })
-        
+            else:
+                logger.warning(f"Column '{col}' referenced in formula not found in DataFrame or columns_to_process. Filling with NaN.")
+                namespace[col] = pd.Series([np.nan] * len(df))
+
+        namespace['np'] = np
         return namespace
-    
+
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         result_df = df.copy()
-        
         try:
-            # Prepare namespace with column data and functions
             namespace = self._prepare_namespace(df)
-            
-            # Evaluate the formula
-            logger.debug(f"Evaluating formula: {self.formula}")
-            
-            # Use eval with restricted namespace for safety
+            logger.debug(f"Evaluating formula vectorially: {self.formula}")
+
             if self.safe_mode:
-                # Restricted namespace for security
                 result = eval(self.formula, {"__builtins__": {}}, namespace)
             else:
-                # Full namespace (less secure but more flexible)
-                result = eval(self.formula, namespace)
-            
-            # Ensure result is a pandas Series
+                result = eval(self.formula, {}, namespace)
+
             if not isinstance(result, pd.Series):
                 if np.isscalar(result):
                     result = pd.Series([result] * len(df))
                 else:
                     result = pd.Series(result)
-            
-            # Handle infinite values and very large numbers
+
             result = result.replace([np.inf, -np.inf], np.nan)
-            
-            # Add the new column
             result_df[self.new_column_name] = result
-            
-            logger.debug(f"Successfully created column '{self.new_column_name}' using formula: {self.formula}")
-            
+            nan_count = result.isna().sum()
+            logger.debug(f"Column '{self.new_column_name}' created. NaN count: {nan_count}/{len(result)}")
+
         except ZeroDivisionError:
-            logger.error("Division by zero encountered in formula evaluation")
+            logger.error("Division by zero encountered during formula evaluation.")
             result_df[self.new_column_name] = np.nan
-            
-        except (ValueError, TypeError) as e:
-            logger.error(f"Mathematical error in formula evaluation: {e}")
+
+        except NameError as e:
+            logger.error(f"Variable not defined in formula: {e}. Check that all column names are in columns_to_process or available in the DataFrame.")
             result_df[self.new_column_name] = np.nan
-            
+
         except Exception as e:
-            logger.error(f"Unexpected error during formula transformation: {e}")
+            logger.error(f"Error during formula evaluation: {e}")
             result_df[self.new_column_name] = np.nan
 
         return result_df

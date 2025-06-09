@@ -7,8 +7,8 @@ Brief description of original dataset + transformation strategy + expected perfo
 New Columns
 For each proposed transformation:
 
-final_col: Column name
-cols_to_process: Source columns
+new_column_name: Column name
+columns_to_process: Source columns
 provider_transform: Exact transformation name from available list
 params: Required parameters (empty if none)
 reasoning: Why this transformation improves model performance for the target

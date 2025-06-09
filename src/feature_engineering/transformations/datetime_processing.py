@@ -14,14 +14,9 @@ class DateTimeProcessingTransform(BaseTransformation):
     PROVIDER = "datetime_processing"
     DESCRIPTION = """
     This transformation applies date/time-based processing to date columns.
-
-    Input:
-        - source_columns: List of column names to process (can be one or two columns).
-        
-    Output:
-        - new_column_name: Name of the output column or prefix for multiple outputs.
-        
-    Param:
+    - columns_to_process: List of column names to process (can be one or two columns).
+    - new_column_name: Name of the output column or prefix for multiple outputs.
+    - params:
         - operation: The type of temporal operation to apply. Supported operations are:
             - 'year': Extract year from the date.
             - 'month': Extract month from the date.
@@ -31,16 +26,16 @@ class DateTimeProcessingTransform(BaseTransformation):
             - 'period': Categorize dates into predefined periods (param["periods"] expected).
     """
 
-    def __init__(self, new_column_name: str, source_columns: List[str], param: Optional[Dict[str, Any]] = None):
+    def __init__(self, new_column_name: str, columns_to_process: List[str], param: Optional[Dict[str, Any]] = None):
         """
         Initialize the date/time processing transformation.
         
         Args:
             new_column_name: The name of the output column after transformation
-            source_columns: List of column names to process (can be one or two columns).
+            columns_to_process: List of column names to process (can be one or two columns).
             param: Parameters for the transformation, e.g. 'operation' or 'periods'
         """
-        super().__init__(new_column_name, source_columns, param)
+        super().__init__(new_column_name, columns_to_process, param)
         self.valid = True
         valid_operations = ['year', 'month', 'day', 'weekday', 'days_diff', 'period']
 
@@ -52,8 +47,8 @@ class DateTimeProcessingTransform(BaseTransformation):
             logger.error(f"[{self.PROVIDER}] Unsupported operation: {self.param['operation']}")
             self.valid = False
 
-        elif len(source_columns) not in [1, 2]:
-            logger.error(f"[{self.PROVIDER}] Invalid number of source columns: {len(source_columns)}. Must be 1 or 2.")
+        elif len(columns_to_process) not in [1, 2]:
+            logger.error(f"[{self.PROVIDER}] Invalid number of source columns: {len(columns_to_process)}. Must be 1 or 2.")
             self.valid = False
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -72,7 +67,7 @@ class DateTimeProcessingTransform(BaseTransformation):
             return result_df
 
         try :
-            for col in self.source_columns:
+            for col in self.columns_to_process:
                 if col not in df.columns:
                     logger.warning(f"Column '{col}' not found in dataframe. Skipping.")
                     return result_df
@@ -81,7 +76,7 @@ class DateTimeProcessingTransform(BaseTransformation):
                     result_df[col] = pd.to_datetime(result_df[col], errors="coerce")
 
 
-            col = self.source_columns[0]
+            col = self.columns_to_process[0]
             
             operation = self.param["operation"]
             
@@ -103,10 +98,10 @@ class DateTimeProcessingTransform(BaseTransformation):
 
             elif operation == 'days_diff':
                 logger.info("Calculating date difference in days")
-                if len(self.source_columns) < 2:
+                if len(self.columns_to_process) < 2:
                     logger.warning("Need two columns for 'days_diff'. Skipping.")
                     return result_df
-                second_col = self.source_columns[1]
+                second_col = self.columns_to_process[1]
                 if second_col not in result_df.columns:
                     logger.warning(f"Second column '{second_col}' not found. Skipping.")
                     return result_df

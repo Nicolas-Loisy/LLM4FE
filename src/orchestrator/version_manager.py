@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 import pandas as pd
 
@@ -9,17 +9,15 @@ logger = logging.getLogger(__name__)
 
 
 class VersionManager:
-    """Manages versioning and persistence of datasets and transformations."""
+    """Simplified version manager for basic dataset tracking with iteration logging."""
     
     def __init__(self, output_dir: str = "data/versions"):
         self.output_dir = output_dir
-        self.models_dir = os.path.join(output_dir, "models")
         self.current_version = 0
-        self.version_history = []
+        self.iteration_history = []  # Store iteration data
         
         # Create necessary directories
         os.makedirs(self.output_dir, exist_ok=True)
-        os.makedirs(self.models_dir, exist_ok=True)
     
     def increment_version(self) -> int:
         """Increment and return the current version number."""
@@ -31,100 +29,87 @@ class VersionManager:
         filename = f"dataset_v{self.current_version}{suffix}.csv"
         output_path = os.path.join(self.output_dir, filename)
         dataset.to_csv(output_path, index=False)
-        logger.info(f"Saved dataset to {output_path}")
+        logger.debug(f"Saved dataset to {output_path}")
         return output_path
     
-    def create_version_entry(
+    def _serialize_transformations(self, transformations: List[Any]) -> List[Dict[str, Any]]:
+        """Convert transformation objects to JSON-serializable dictionaries."""
+        if not transformations:
+            return []
+        
+        serialized = []
+        for transform in transformations:
+            try:
+                if hasattr(transform, 'model_dump'):  # Pydantic v2
+                    serialized.append(transform.model_dump())
+                elif hasattr(transform, 'dict'):  # Pydantic v1
+                    serialized.append(transform.dict())
+                elif isinstance(transform, dict):
+                    serialized.append(transform)
+                else:
+                    # Convert to string as fallback
+                    serialized.append(str(transform))
+            except Exception as e:
+                logger.warning(f"Failed to serialize transformation {transform}: {e}")
+                serialized.append(str(transform))
+        
+        return serialized
+    
+    def record_iteration(
         self,
+        prompt_name: str,
+        iteration: int,
         input_path: str,
         fe_output_path: str,
-        final_output_path: str,
-        new_transformations_count: int,
-        total_transformations_count: int,
-        description: str,
-        ml_score: float = 0.0
-    ) -> Dict[str, Any]:
-        """Create a version entry with ML score."""
-        version_entry = {
-            'version': self.current_version,
-            'timestamp': datetime.now().isoformat(),
-            'input_path': input_path,
-            'fe_output_path': fe_output_path,
-            'final_output_path': final_output_path,
-            'new_transformations_count': new_transformations_count,
-            'total_transformations_count': total_transformations_count,
-            'description': description,
-            'ml_score': ml_score
-        }
-        
-        self.version_history.append(version_entry)
-        logger.info(f"Version {self.current_version} created with ML score: {ml_score:.4f}")
-        
-        return version_entry
-    
-    def save_version_config(
-        self,
-        transformations: List,
+        nb_transformations: int,
         dataset_description: str,
-        input_path: str,
-        output_path: str,
-        dataset: pd.DataFrame,
-        target_column: Optional[str] = None
-    ) -> str:
-        """Save configuration for current version."""
-        config_filename = f"config_v{self.current_version}.json"
-        config_path = os.path.join(self.output_dir, config_filename)
+        score: float,
+        transformations: List[Any] = None
+    ) -> None:
+        """Record iteration information."""
+        # Serialize transformations to ensure JSON compatibility
+        serialized_transformations = self._serialize_transformations(transformations or [])
         
-        # Convert transformations to JSON-serializable format
-        json_transformations = []
-        for t in transformations:
-            if hasattr(t, 'model_dump'):
-                json_transformations.append(t.model_dump())
-            else:
-                json_transformations.append(t.__dict__)
-        
-        current_version_data = {
+        iteration_data = {
             "version": self.current_version,
             "timestamp": datetime.now().isoformat(),
+            "prompt_name": prompt_name,
+            "iteration": iteration,
+            "input_path": input_path,
+            "fe_output_path": fe_output_path,
+            "nb_transformations": nb_transformations,
             "dataset_description": dataset_description,
-            "input_file": input_path,
-            "output_file": output_path,
-            "dataset_shape": {"rows": dataset.shape[0], "columns": dataset.shape[1]},
-            "target_column": target_column,
-            "transformations": json_transformations,
-            "columns": list(dataset.columns)
+            "score": score,
+            "transformations": serialized_transformations
         }
         
-        config_data = {
-            "current_version": current_version_data,
-            "version_history": self.version_history
-        }
-        
-        with open(config_path, 'w') as f:
-            json.dump(config_data, f, indent=2)
-        
-        logger.info(f"Saved configuration for version {self.current_version} to {config_path}")
-        return config_path
+        self.iteration_history.append(iteration_data)
+        logger.debug(f"Recorded iteration {iteration} for prompt {prompt_name} with score {score:.4f} and {nb_transformations} transformations")
     
-    def save_global_summary(self):
-        """Save global summary of all versions."""
-        global_info = {
-            'total_versions': self.current_version,
-            'versions_summary': {}
+    def get_iterations_for_prompt(self, prompt_name: str) -> List[Dict[str, Any]]:
+        """Get all iterations for a specific prompt."""
+        return [item for item in self.iteration_history if item["prompt_name"] == prompt_name]
+    
+    def get_all_iterations(self) -> List[Dict[str, Any]]:
+        """Get all recorded iterations."""
+        return self.iteration_history.copy()
+    
+    def save_iterations_summary(self, filename: str = None) -> str:
+        """Save all iteration data to a JSON file."""
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"all_prompts_iterations_{timestamp}.json"
+        
+        summary_path = os.path.join(self.output_dir, filename)
+        
+        summary_data = {
+            "total_iterations": len(self.iteration_history),
+            "prompts": list(set(item["prompt_name"] for item in self.iteration_history)),
+            "iterations": self.iteration_history
         }
         
-        for entry in self.version_history:
-            version = entry.get('version')
-            global_info['versions_summary'][version] = {
-                'timestamp': entry.get('timestamp'),
-                'description': entry.get('description'),
-                'input_path': entry.get('input_path'),
-                'output_path': entry.get('output_path'),
-                'transformations_count': entry.get('total_transformations_count')
-            }
+        with open(summary_path, 'w') as f:
+            json.dump(summary_data, f, indent=2)
         
-        info_path = os.path.join(self.output_dir, "versions_summary.json")
-        with open(info_path, 'w') as f:
-            json.dump(global_info, f, indent=4)
-        
-        logger.info(f"Saved global versions info to {info_path}")
+        logger.info(f"Saved iterations summary to {summary_path}")
+        return summary_path

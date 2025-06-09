@@ -13,8 +13,8 @@ Original data + selected tree path + expected improvements.
 New Columns
 For each transformation from optimal path:
 
-final_col: Column name
-cols_to_process: Source columns
+new_column_name: Column name
+columns_to_process: Source columns
 provider_transform: Exact name from available list
 params: Parameters (empty if none)
 reasoning: Tree branch + selection rationale
