@@ -85,11 +85,11 @@ if __name__ == "__main__":
                             label=clean_name, color=color)
                     
                     # Add best score marker
-                    best_score = max(scores)
-                    best_iteration = iterations[scores.index(best_score)]
-                    plt.scatter(best_iteration, best_score, 
-                              s=100, color=color, marker='*', 
-                              edgecolors='black', linewidth=1, zorder=5)
+                    # best_score = max(scores)
+                    # best_iteration = iterations[scores.index(best_score)]
+                    # plt.scatter(best_iteration, best_score, 
+                    #           s=100, color=color, marker='*', 
+                    #           edgecolors='black', linewidth=1, zorder=5)
             
             plt.xlabel('Iteration', fontsize=12)
             plt.ylabel('Score', fontsize=12)
