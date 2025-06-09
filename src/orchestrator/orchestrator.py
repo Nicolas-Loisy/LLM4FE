@@ -268,7 +268,8 @@ class Orchestrator:
             fe_output_path=fe_output_path,
             nb_transformations=len(new_transformations),
             dataset_description=updated_description,
-            score=ml_score
+            score=ml_score,
+            transformations=new_transformations
         )
         
         return fe_output_path, cleaned_output_path, updated_description, all_transformations, ml_score

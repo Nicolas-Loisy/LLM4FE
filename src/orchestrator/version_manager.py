@@ -40,7 +40,8 @@ class VersionManager:
         fe_output_path: str,
         nb_transformations: int,
         dataset_description: str,
-        score: float
+        score: float,
+        transformations: List[str] = None
     ) -> None:
         """Record iteration information."""
         iteration_data = {
@@ -52,11 +53,12 @@ class VersionManager:
             "fe_output_path": fe_output_path,
             "nb_transformations": nb_transformations,
             "dataset_description": dataset_description,
-            "score": score
+            "score": score,
+            "transformations": transformations or []
         }
         
         self.iteration_history.append(iteration_data)
-        logger.debug(f"Recorded iteration {iteration} for prompt {prompt_name} with score {score:.4f}")
+        logger.debug(f"Recorded iteration {iteration} for prompt {prompt_name} with score {score:.4f} and {nb_transformations} transformations")
     
     def get_iterations_for_prompt(self, prompt_name: str) -> List[Dict[str, Any]]:
         """Get all iterations for a specific prompt."""
