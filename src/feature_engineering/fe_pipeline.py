@@ -109,10 +109,14 @@ class FeatureEngineeringPipeline:
 
             # Extract the transformations from the response
             if isinstance(response, DatasetStructure):
-                self.transformations = response.datasetStructure
+                all_transformations = response.datasetStructure
+                # Filter out transformations that use the target column
+                filtered_transformations = self._filter_target_transformations(all_transformations)
+                
+                self.transformations = filtered_transformations
                 self.dataset_description = response.datasetDescription
                 logger.info(f"Dataset description: {self.dataset_description}")
-                logger.info(f"Generated {len(self.transformations)} transformations.")
+                logger.info(f"Generated {len(filtered_transformations)} transformations (filtered from {len(all_transformations)}).")
                 return self.transformations, self.dataset_description
             else:
                 logger.error(f"Unexpected response format from LLM: {response}")
@@ -121,6 +125,56 @@ class FeatureEngineeringPipeline:
         except Exception as e:
             logger.error(f"Error generating transformations: {e}")
             return [], None
+
+    def _filter_target_transformations(self, transformations: List[Transformation]) -> List[Transformation]:
+        """
+        Filter out transformations that use the target column.
+        
+        Args:
+            transformations: List of transformations to filter
+            
+        Returns:
+            List of transformations that don't use the target column
+        """
+        if not self.target_column:
+            return transformations
+        
+        filtered_transformations = []
+        removed_count = 0
+        
+        for transform in transformations:
+            if self._uses_target_column(transform):
+                logger.info(f"Removing transformation that uses target column '{self.target_column}': {transform.provider}")
+                removed_count += 1
+            else:
+                filtered_transformations.append(transform)
+        
+        if removed_count > 0:
+            logger.info(f"Filtered out {removed_count} transformations that use the target column.")
+        
+        return filtered_transformations
+
+    def _uses_target_column(self, transformation: Transformation) -> bool:
+        """
+        Check if a transformation uses the target column.
+        
+        Args:
+            transformation: Transformation to check
+            
+        Returns:
+            True if the transformation uses the target column, False otherwise
+        """
+        if not self.target_column:
+            return False
+        
+        # Check if target column is in the columns_to_process list
+        if hasattr(transformation, 'columns_to_process') and transformation.columns_to_process:
+            if isinstance(transformation.columns_to_process, list):
+                return self.target_column in transformation.columns_to_process
+            elif isinstance(transformation.columns_to_process, str):
+                return self.target_column == transformation.columns_to_process
+
+        return False
 
     def get_target_column_info(self) -> str:
         """
