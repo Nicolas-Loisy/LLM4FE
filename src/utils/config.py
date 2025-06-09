@@ -3,6 +3,7 @@ import os
 import re
 import logging
 from dotenv import load_dotenv
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,84 @@ class SingletonConfig:
         if env_value is not None:
             return env_value
         return value
+
+    def get_file_content(self, key, default=None):
+        """Get content of a file specified in the configuration.
+        
+        Args:
+            key: The configuration key that contains the file path
+            default: Default value if key is not found or file can't be loaded
+            
+        Returns:
+            String with file content
+        """
+        file_path = self.get(key, default)
+        if not file_path or not isinstance(file_path, str):
+            return default
+            
+        try:
+            # Get the project root directory (where config was loaded from)
+            base_dir = Path(self.config_path).parent.parent
+            full_path = base_dir / file_path
+            with open(full_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading file {file_path}: {str(e)}")
+            return default
+    
+    def get_file_content_by_path(self, file_path: str, default=None):
+        """Get content of a file by direct path.
+        
+        Args:
+            file_path: The file path relative to project root
+            default: Default value if file can't be loaded
+            
+        Returns:
+            String with file content
+        """
+        if not file_path or not isinstance(file_path, str):
+            return default
+            
+        try:
+            # Get the project root directory (where config was loaded from)
+            base_dir = Path(self.config_path).parent.parent
+            full_path = base_dir / file_path
+            
+            with open(full_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading file {file_path}: {str(e)}")
+            return default
+
+    def get_with_params(self, key: str, params=None, default=None):
+        """Get configuration value and inject parameters.
+        
+        Args:
+            key: The configuration key
+            params: Dictionary of parameters to inject into the string
+            default: Default value if key is not found
+            
+        Returns:
+            String with parameters injected
+        """
+        # Special case for file keys
+        if key.endswith("_file"):
+            value = self.get_file_content(key, default)
+        else:
+            value = self.get(key, default)
+            
+        if not isinstance(value, str) or not params:
+            return value
+            
+        try:
+            # Use string format to inject parameters
+            return value.format(**params)
+        except KeyError as e:
+            logger.error(f"Missing parameter for string formatting: {e}")
+            return value
+        except Exception as e:
+            logger.error(f"Error during parameter injection: {str(e)}")
+            return value
 
 
 def get_config(config_path=None):

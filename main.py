@@ -15,7 +15,7 @@ configs = [
             'description': 'Additionne les colonnes a et b',
             'category': 'math',
             'new_column_name': 'a_plus_b',
-            'source_columns': ['price', 'tax'],
+            'columns_to_process': ['price', 'tax'],
             'transformation_params': None
         },
         {
@@ -23,7 +23,7 @@ configs = [
             'description': 'Multiplie les colonnes a et b',
             'category': 'math',
             'new_column_name': 'a_times_b',
-            'source_columns': ['price', 'tax'],
+            'columns_to_process': ['price', 'tax'],
             'transformation_params': None
         }
     ]

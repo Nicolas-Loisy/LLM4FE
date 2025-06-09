@@ -13,16 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 class FeatureEngineeringPipeline:
-    def __init__(self, dataset_path: str, dataset_description: Optional[str] = None, target_column: Optional[str] = None):
+    def __init__(self, dataset_path: str, prompt: str, dataset_description: Optional[str] = None, target_column: Optional[str] = None):
         """
         Initialize Feature Engineering Pipeline.
         
         Args:
             dataset_path: Path to the input dataset (CSV file).
+            prompt: The prompt template to use for LLM generation.
             dataset_description: Optional description of the dataset to guide transformations.
             target_column: Optional target column for supervised learning tasks.
         """
         self.dataset_path: Path = Path(dataset_path)
+        self.prompt: str = prompt
         self.dataset_description: Optional[str] = dataset_description
         self.target_column: Optional[str] = target_column
         self.transformations: List[Transformation] = []
@@ -83,32 +85,23 @@ class FeatureEngineeringPipeline:
         dataset_info = self.get_dataset_info()
         transforms_text = self.get_available_transformations_info()
         target_info = self.get_target_column_info()
+
+        # Use the provided prompt with parameter injection
+        formatted_prompt = self.prompt.format(
+            dataset_info=dataset_info,
+            dataset_description=self.dataset_description or 'No description provided',
+            target_info=target_info,
+            transforms_text=transforms_text
+        )
         
-        prompt = f"""
-        You are a data scientist tasked with creating feature engineering transformations for a machine learning model.
-                
-        Here's information about the dataset:
-        {dataset_info}
-
-        Dataset description: {self.dataset_description or 'No description provided'}{target_info}
-
-        {transforms_text}
-
-        Generate a list of feature engineering transformations that would improve model performance.
-        For each transformation, specify:
-        1. The new column name (new_column_name)
-        2. The source columns (source_columns)
-        3. The category: 'math', 'aggregation', 'encoding', 'scaling', 'text', or 'custom'
-        4. Any transformation parameters (transformation_params)
-
-        Return the transformations in a structured JSON format.
-        """
-
+        logger.debug("Using provided prompt template")
+        logger.debug(f"Prompt: {formatted_prompt}")
+        
         try:
             # Use the LLM with format support
             logger.info("Generating transformations with LLM...")
             response: DatasetStructure = self.llm.generate_with_format(
-                prompt=prompt,
+                prompt=formatted_prompt,
                 response_format=DatasetStructure
             )
             logger.info("LLM response received.")
@@ -116,10 +109,14 @@ class FeatureEngineeringPipeline:
 
             # Extract the transformations from the response
             if isinstance(response, DatasetStructure):
-                self.transformations = response.datasetStructure
+                all_transformations = response.datasetStructure
+                # Filter out transformations that use the target column
+                filtered_transformations = self._filter_target_transformations(all_transformations)
+                
+                self.transformations = filtered_transformations
                 self.dataset_description = response.datasetDescription
                 logger.info(f"Dataset description: {self.dataset_description}")
-                logger.info(f"Generated {len(self.transformations)} transformations.")
+                logger.info(f"Generated {len(filtered_transformations)} transformations (filtered from {len(all_transformations)}).")
                 return self.transformations, self.dataset_description
             else:
                 logger.error(f"Unexpected response format from LLM: {response}")
@@ -128,6 +125,56 @@ class FeatureEngineeringPipeline:
         except Exception as e:
             logger.error(f"Error generating transformations: {e}")
             return [], None
+
+    def _filter_target_transformations(self, transformations: List[Transformation]) -> List[Transformation]:
+        """
+        Filter out transformations that use the target column.
+        
+        Args:
+            transformations: List of transformations to filter
+            
+        Returns:
+            List of transformations that don't use the target column
+        """
+        if not self.target_column:
+            return transformations
+        
+        filtered_transformations = []
+        removed_count = 0
+        
+        for transform in transformations:
+            if self._uses_target_column(transform):
+                logger.info(f"Removing transformation that uses target column '{self.target_column}': {transform.provider}")
+                removed_count += 1
+            else:
+                filtered_transformations.append(transform)
+        
+        if removed_count > 0:
+            logger.info(f"Filtered out {removed_count} transformations that use the target column.")
+        
+        return filtered_transformations
+
+    def _uses_target_column(self, transformation: Transformation) -> bool:
+        """
+        Check if a transformation uses the target column.
+        
+        Args:
+            transformation: Transformation to check
+            
+        Returns:
+            True if the transformation uses the target column, False otherwise
+        """
+        if not self.target_column:
+            return False
+        
+        # Check if target column is in the columns_to_process list
+        if hasattr(transformation, 'columns_to_process') and transformation.columns_to_process:
+            if isinstance(transformation.columns_to_process, list):
+                return self.target_column in transformation.columns_to_process
+            elif isinstance(transformation.columns_to_process, str):
+                return self.target_column == transformation.columns_to_process
+
+        return False
 
     def get_target_column_info(self) -> str:
         """
@@ -208,7 +255,7 @@ class FeatureEngineeringPipeline:
         
         for provider, description in info_transforms.items():
             available_transforms.append(f"- {provider}: {description}")
-        transforms_text = "Available transformations with descriptions:\n" + "\n".join(available_transforms)
+        transforms_text = "Available transformations with descriptions:\n" + "\n\n============\n".join(available_transforms)
         
         return transforms_text
 
