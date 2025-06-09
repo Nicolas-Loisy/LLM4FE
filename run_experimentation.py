@@ -76,10 +76,13 @@ if __name__ == "__main__":
                     iterations = [score['iteration'] for score in prompt_result['iteration_scores']]
                     scores = [score['score'] for score in prompt_result['iteration_scores']]
                     
+                    # Clean prompt name
+                    clean_name = prompt_name.replace('_template.txt', '')
+                    
                     color = colors[i % len(colors)]
                     plt.plot(iterations, scores, 
                             marker='o', linewidth=2.5, markersize=6,
-                            label=prompt_name, color=color)
+                            label=clean_name, color=color)
                     
                     # Add best score marker
                     best_score = max(scores)
@@ -126,7 +129,9 @@ if __name__ == "__main__":
             best_scores = []
             
             for prompt_name, summary in result['summary'].items():
-                prompt_names.append(prompt_name)
+                # Clean prompt name
+                clean_name = prompt_name.replace('_template.txt', '')
+                prompt_names.append(clean_name)
                 best_scores.append(summary['best_score'])
             
             x = np.arange(len(prompt_names))
@@ -144,8 +149,14 @@ if __name__ == "__main__":
             plt.xticks(x, prompt_names, rotation=45, ha='right')
             plt.grid(True, alpha=0.3, axis='y')
             plt.tight_layout()
-            plt.savefig('best_scores_comparison.png', dpi=150, bbox_inches='tight')
+            
+            # Save with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f'best_scores_comparison_{timestamp}.png'
+            plt.savefig(filename, dpi=150, bbox_inches='tight')
             plt.show()
+            
+            return filename
         
         def plot_iteration_heatmap(result):
             """Plot heatmap of scores per iteration per prompt"""
@@ -153,6 +164,9 @@ if __name__ == "__main__":
             
             # Prepare data for heatmap
             prompt_names = list(result['prompt_results'].keys())
+            # Clean prompt names
+            clean_prompt_names = [name.replace('_template.txt', '') for name in prompt_names]
+            
             max_iterations = max(len(result['prompt_results'][p]['iteration_scores']) 
                                for p in prompt_names)
             
@@ -165,7 +179,7 @@ if __name__ == "__main__":
             
             plt.imshow(heatmap_data, cmap='viridis', aspect='auto')
             plt.colorbar(label='Score')
-            plt.yticks(range(len(prompt_names)), prompt_names)
+            plt.yticks(range(len(clean_prompt_names)), clean_prompt_names)
             plt.xlabel('Iteration')
             plt.ylabel('Prompt Type')
             plt.title('Score Heatmap: Prompts vs Iterations')
@@ -178,20 +192,26 @@ if __name__ == "__main__":
                                ha='center', va='center', fontsize=8, color='white')
             
             plt.tight_layout()
-            plt.savefig('iteration_heatmap.png', dpi=150, bbox_inches='tight')
+            
+            # Save with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f'iteration_heatmap_{timestamp}.png'
+            plt.savefig(filename, dpi=150, bbox_inches='tight')
             plt.show()
+            
+            return filename
         
         try:
             from datetime import datetime
             
             score_evolution_file = plot_score_evolution(result)
-            plot_best_scores(result)
-            plot_iteration_heatmap(result)
+            best_scores_file = plot_best_scores(result)
+            heatmap_file = plot_iteration_heatmap(result)
             
             print(f"\nVisualization files generated:")
             print(f"- {score_evolution_file}")
-            print("- best_scores_comparison.png")
-            print("- iteration_heatmap.png")
+            print(f"- {best_scores_file}")
+            print(f"- {heatmap_file}")
             
         except Exception as e:
             print(f"Error generating visualizations: {e}")
