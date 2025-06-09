@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 import pandas as pd
 
@@ -32,6 +32,29 @@ class VersionManager:
         logger.debug(f"Saved dataset to {output_path}")
         return output_path
     
+    def _serialize_transformations(self, transformations: List[Any]) -> List[Dict[str, Any]]:
+        """Convert transformation objects to JSON-serializable dictionaries."""
+        if not transformations:
+            return []
+        
+        serialized = []
+        for transform in transformations:
+            try:
+                if hasattr(transform, 'model_dump'):  # Pydantic v2
+                    serialized.append(transform.model_dump())
+                elif hasattr(transform, 'dict'):  # Pydantic v1
+                    serialized.append(transform.dict())
+                elif isinstance(transform, dict):
+                    serialized.append(transform)
+                else:
+                    # Convert to string as fallback
+                    serialized.append(str(transform))
+            except Exception as e:
+                logger.warning(f"Failed to serialize transformation {transform}: {e}")
+                serialized.append(str(transform))
+        
+        return serialized
+    
     def record_iteration(
         self,
         prompt_name: str,
@@ -41,9 +64,12 @@ class VersionManager:
         nb_transformations: int,
         dataset_description: str,
         score: float,
-        transformations: List[str] = None
+        transformations: List[Any] = None
     ) -> None:
         """Record iteration information."""
+        # Serialize transformations to ensure JSON compatibility
+        serialized_transformations = self._serialize_transformations(transformations or [])
+        
         iteration_data = {
             "version": self.current_version,
             "timestamp": datetime.now().isoformat(),
@@ -54,7 +80,7 @@ class VersionManager:
             "nb_transformations": nb_transformations,
             "dataset_description": dataset_description,
             "score": score,
-            "transformations": transformations or []
+            "transformations": serialized_transformations
         }
         
         self.iteration_history.append(iteration_data)
