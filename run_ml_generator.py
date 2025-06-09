@@ -14,6 +14,7 @@ if __name__ == "__main__":
     
     print(f"Problem Type: {ml_results['problem_type']}")
     print(f"{ml_results['metric_name']}: {ml_results['score']:.4f}")
+    print(f"Train time: {ml_results['train_time']:.4f}")
     ml_better = ml_estimator.get_best_score(ml_results['score'], 0.1, ml_results['problem_type'])
     print(ml_better)
 
@@ -23,6 +24,7 @@ if __name__ == "__main__":
     
     # print(f"Problem Type: {ml_results['problem_type']}")
     # print(f"{ml_results['metric_name']}: {ml_results['score']:.4f}")
+    # print(f"Train time: {ml_results['train_time']:.4f}")
     # ml_better = ml_estimator.get_best_score(ml_results['score'], 2340000, ml_results['problem_type'])
     # print(ml_better)
 

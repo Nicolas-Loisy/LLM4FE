@@ -6,6 +6,7 @@ from sklearn.metrics import (
     f1_score, root_mean_squared_error as rmse_score
 )
 
+import time
 import pandas as pd
 import logging
 
@@ -123,8 +124,10 @@ class MachineLearningEstimator:
                 random_state=42,
                 stratify=self.Y if self.problem_type == CLASSIFICATION else None
             )
-            
+
+            train_time_start = time.time()
             self.model.fit(X_train, Y_train)
+            ml_train_time = time.time() - train_time_start
             logger.info("Model training completed.")
             
             Y_prediction = self.model.predict(X_test)
@@ -142,7 +145,8 @@ class MachineLearningEstimator:
             return {
                 'problem_type': self.problem_type,
                 'score': self.score,
-                'metric_name': metric_name
+                'metric_name': metric_name,
+                'train_time': ml_train_time
             }
         except Exception as e:
             logger.error(f"Error during training and prediction: {e}")
