@@ -1,5 +1,6 @@
 from pathlib import Path
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import logging
 
@@ -24,6 +25,24 @@ class DataCleaner:
         # Colonnes numériques / catégorielles
         num_cols = df_cleaned.select_dtypes(include=['number']).columns
         cat_cols = df_cleaned.select_dtypes(include=['object', 'category']).columns
+
+        # Nettoyage des valeurs infinies et aberrantes pour les colonnes numériques
+        for col in num_cols:
+            if df_cleaned[col].dtype in ['float64', 'float32', 'int64', 'int32']:
+                # Détecter les valeurs infinies
+                inf_count = np.isinf(df_cleaned[col]).sum()
+                if inf_count > 0:
+                    logger.warning(f"Colonne '{col}': {inf_count} valeurs infinies détectées")
+                    # Remplacer les valeurs infinies par NaN
+                    df_cleaned[col] = df_cleaned[col].replace([np.inf, -np.inf], np.nan)
+                
+                # Détecter les valeurs trop grandes (> float32 max)
+                float32_max = np.finfo(np.float32).max
+                large_values = (df_cleaned[col].abs() > float32_max).sum()
+                if large_values > 0:
+                    logger.warning(f"Colonne '{col}': {large_values} valeurs trop grandes pour float32")
+                    # Clipper les valeurs trop grandes
+                    df_cleaned[col] = df_cleaned[col].clip(-float32_max, float32_max)
 
         # Remplacement des NaN
         for col in num_cols:
