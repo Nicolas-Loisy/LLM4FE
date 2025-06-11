@@ -37,12 +37,19 @@ class OpenWebUILLM(BaseLLM):
         }
 
         if response_format:
-            request_body["format"] = response_format.model_json_schema()
+            request_body["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": response_format.__name__,
+                    "schema": response_format.model_json_schema()
+                }
+            }
 
         response = requests.post(
             f"{self._api_url}/api/chat/completions",
             headers=self._headers,
-            data=json.dumps(request_body)
+            data=json.dumps(request_body),
+            timeout=300
         )
         
         try:
