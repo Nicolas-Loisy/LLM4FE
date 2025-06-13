@@ -1,23 +1,23 @@
 {
-    "_llm": {
+    "llm": {
         "provider": "OpenWebUI",
         "api_key": "${OPENWEBUI_API_KEY}",
         "api_url": "https://pleiade.mi.parisdescartes.fr",
-        "model": "llama3.3:latest",
+        "__model": "llama3.3:latest",
         "_model": "deepseek-R1:70b",
-        "__model": "mistral-large:latest"
+        "model": "mistral-large:latest"
     },
     "_llm": {
         "provider": "OpenAi",
         "api_key": "${OPENAI_API_KEY}",
         "model": "gpt-4o"
     },
-    "llm":{
+    "__llm":{
         "provider": "Anthropic",
         "api_key": "${ANTHROPIC_API_KEY}",
         "model": "claude-3-5-sonnet-20241022"
     },
-    "prompt_file": "prompts/intuitive_prompt_template.txt",
+    "prompt_file": "data/prompts/intuitive_prompt_template.txt",
     "_prompt_files": [
         "prompts/intuitive_prompt_template.txt"
     ],

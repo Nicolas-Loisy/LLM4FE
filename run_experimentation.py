@@ -19,7 +19,6 @@ if __name__ == "__main__":
     target = "loan_status"
 
 
-
     # Choose execution mode
     USE_MULTIPLE_PROMPTS = True  # Set to False for single prompt execution
     # USE_MULTIPLE_PROMPTS = False
