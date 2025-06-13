@@ -1,25 +1,32 @@
 {
-    "_llm": {
+    "__llm": {
         "provider": "OpenWebUI",
         "api_key": "${OPENWEBUI_API_KEY}",
         "api_url": "https://pleiade.mi.parisdescartes.fr",
-        "model": "llama3.3:latest",
+        "__model": "llama3.3:latest",
         "_model": "deepseek-R1:70b",
-        "__model": "mistral-large:latest"
+        "model": "mistral-large:latest"
     },
     "llm": {
         "provider": "OpenAi",
         "api_key": "${OPENAI_API_KEY}",
-        "_model": "gpt-4o",
-        "model": "gpt-4.1-2025-04-14"
+        "model": "gpt-4o"
     },
-    "prompt_file": "prompts/intuitive_prompt_template.txt",
+    "__llm":{
+        "provider": "Anthropic",
+        "api_key": "${ANTHROPIC_API_KEY}",
+        "model": "claude-3-5-sonnet-20241022"
+    },
+    "prompt_file": "data/prompts/intuitive_prompt_template.txt",
+    "_prompt_files": [
+        "prompts/intuitive_prompt_template.txt"
+    ],
     "prompt_files": [
-        "prompts/intuitive_prompt_template.txt",
-        "prompts/chain_of_thought_prompt_template.txt",
-        "prompts/graph_of_thought_prompt_template.txt",
-        "prompts/one_shot_prompt_template.txt",
-        "prompts/tree_of_thought_prompt_template.txt",
-        "prompts/zero_shot_prompt_template.txt"
+        "data/prompts/intuitive_prompt_template.txt",
+        "data/prompts/chain_of_thought_prompt_template.txt",
+        "data/prompts/graph_of_thought_prompt_template.txt",
+        "data/prompts/one_shot_prompt_template.txt",
+        "data/prompts/tree_of_thought_prompt_template.txt",
+        "data/prompts/zero_shot_prompt_template.txt"
     ]
 }

@@ -144,7 +144,7 @@ class FeatureEngineeringPipeline:
         
         for transform in transformations:
             if self._uses_target_column(transform):
-                logger.info(f"Removing transformation that uses target column '{self.target_column}': {transform.provider}")
+                logger.info(f"Removing transformation that uses target column '{self.target_column}': {transform.provider_transform}")
                 removed_count += 1
             else:
                 filtered_transformations.append(transform)
